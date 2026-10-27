@@ -141,28 +141,6 @@ function DashboardLayout() {
         {/* Footer Sidebar (Help, Logout & User profile) */}
         <div className="p-4 border-t border-med-border-subtle space-y-3">
           <button
-            onClick={() =>
-              alert('Centro de ayuda y soporte técnico administrativo')
-            }
-            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-med-text-sub hover:text-med-primary-900 hover:bg-gray-50 rounded-lg transition"
-          >
-            <svg
-              className="w-4 h-4 text-med-text-muted"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>Centro de Ayuda</span>
-          </button>
-
-          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-med-text-sub hover:text-red-600 hover:bg-red-50 rounded-lg transition"
           >
