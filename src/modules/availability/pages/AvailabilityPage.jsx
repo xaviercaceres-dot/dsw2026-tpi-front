@@ -31,18 +31,20 @@ function AvailabilityPage() {
   }, []);
 
   const addRange = () =>
-    setRanges([
-      ...ranges,
+    setRanges((currentRanges) => [
+      ...currentRanges,
       { day: 'LUNES', startTime: '08:00', endTime: '12:00' },
     ]);
   const updateRange = (index, key, value) =>
-    setRanges(
-      ranges.map((item, current) =>
+    setRanges((currentRanges) =>
+      currentRanges.map((item, current) =>
         current === index ? { ...item, [key]: value } : item
       )
     );
   const removeRange = (index) =>
-    setRanges(ranges.filter((_, current) => current !== index));
+    setRanges((currentRanges) =>
+      currentRanges.filter((_, current) => current !== index)
+    );
 
   const submit = async (event) => {
     event.preventDefault();
@@ -177,7 +179,12 @@ function AvailabilityPage() {
             className={`border rounded px-3 py-2 ${
               operation === 'create' ? 'bg-med-primary-100' : ''
             }`}
-            onClick={() => setOperation('create')}
+            onClick={() => {
+              setOperation('create');
+              setRanges([]);
+              setMessage('');
+              setError('');
+            }}
           >
             Crear nueva
           </button>

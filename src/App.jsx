@@ -4,7 +4,6 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
-import ProtectedRoute from './modules/auth/components/ProtectedRoute';
 import RoleRoute from './modules/auth/components/RoleRoute';
 
 // Auth Module

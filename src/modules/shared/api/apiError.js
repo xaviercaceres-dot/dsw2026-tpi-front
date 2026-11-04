@@ -11,6 +11,12 @@ const defaultMessages = {
 function getApiError(error) {
   const status = error.response?.status;
   const payload = error.response?.data;
+  const validationDetails = payload?.errors
+    ? Object.values(payload.errors).flat()
+    : [];
+  const details = Array.isArray(payload?.details)
+    ? payload.details
+    : validationDetails;
 
   return {
     status,
@@ -21,7 +27,7 @@ function getApiError(error) {
       (error.request
         ? 'No se pudo conectar con el backend.'
         : 'Ocurrió un error inesperado.'),
-    details: Array.isArray(payload?.details) ? payload.details : [],
+    details,
   };
 }
 
