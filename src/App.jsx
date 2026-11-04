@@ -5,9 +5,11 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
+import RoleRoute from './modules/auth/components/RoleRoute';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
+import AdminRegisterPage from './modules/auth/pages/AdminRegisterPage';
 
 // Patients Module
 import PatientLoginPage from './modules/patients/pages/PatientLoginPage';
@@ -23,6 +25,7 @@ import OverviewPage from './modules/dashboard/pages/OverviewPage';
 import DoctorsPage from './modules/doctors/pages/DoctorsPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
 import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
+import AvailabilityPage from './modules/availability/pages/AvailabilityPage';
 
 const routes = [
   // Rutas públicas
@@ -34,14 +37,18 @@ const routes = [
     path: '/admin/login',
     element: <AdminLoginPage />,
   },
+  {
+    path: '/admin/register',
+    element: <AdminRegisterPage />,
+  },
 
   // Rutas privadas de pacientes (URL base y turnos)
   {
     path: '/',
     element: (
-      <ProtectedRoute redirectTo="/login">
+      <RoleRoute role="Paciente" redirectTo="/login">
         <PatientLayout />
-      </ProtectedRoute>
+      </RoleRoute>
     ),
     children: [
       {
@@ -59,9 +66,9 @@ const routes = [
   {
     path: '/admin',
     element: (
-      <ProtectedRoute redirectTo="/admin/login">
+      <RoleRoute role="Administrador" redirectTo="/admin/login">
         <DashboardLayout />
-      </ProtectedRoute>
+      </RoleRoute>
     ),
     children: [
       {
@@ -91,6 +98,10 @@ const routes = [
       {
         path: 'doctors',
         element: <DoctorsPage />,
+      },
+      {
+        path: 'availability',
+        element: <AvailabilityPage />,
       },
     ],
   },
