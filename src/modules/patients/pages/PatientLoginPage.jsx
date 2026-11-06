@@ -25,8 +25,16 @@ function PatientLoginPage() {
       );
 
       if (error) {
-        setErrorMessage(error.frontendErrorMessage || 'Credenciales inválidas');
-
+        if (
+          error.response &&
+          (error.response.status === 401 || error.response.status === 400)
+        ) {
+          setErrorMessage('Correo o DNI incorrectos.');
+        } else {
+          setErrorMessage(
+            'Error al conectar con el servidor. Intente más tarde.'
+          );
+        }
         return;
       }
 
@@ -107,6 +115,10 @@ function PatientLoginPage() {
                 }`}
                 {...register('username', {
                   required: 'El correo electrónico es obligatorio',
+                  pattern: {
+                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: 'Ingrese un correo electrónico válido',
+                  },
                 })}
               />
             </div>
@@ -148,6 +160,10 @@ function PatientLoginPage() {
                 }`}
                 {...register('password', {
                   required: 'La contraseña es obligatoria',
+                  minLength: {
+                    value: /^[0-9]{7,8}$/,
+                    message: 'El DNI debe contener solo entre 7 y 8 números',
+                  },
                 })}
               />
               <button
@@ -208,13 +224,6 @@ function PatientLoginPage() {
           <Button type="submit" className="w-full mt-1">
             Ingresar Paciente
           </Button>
-
-          <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-lg p-2.5 text-center text-xs text-med-primary-900">
-            <span className="font-semibold">Credenciales de prueba:</span>
-            <br />
-            Email: <code>paciente@medportal.com</code> | Clave:{' '}
-            <code>paciente123</code>
-          </div>
 
           {errorMessage && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">

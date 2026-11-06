@@ -18,23 +18,30 @@ function AdminLoginPage() {
   const { singinAdmin } = useAuth();
 
   const onValid = async (formData) => {
+    setErrorMessage('');
+
     try {
-      const { error } = await singinAdmin(formData.username, formData.password);
+      const respuesta = await singinAdmin(formData.username, formData.password);
 
-      if (error) {
-        setErrorMessage(
-          error.frontendErrorMessage || 'Credenciales administrativas inválidas'
-        );
+      if (respuesta.error) {
+        const codigoEstado = respuesta.error.response?.status;
 
+        if (codigoEstado === 401 || codigoEstado === 400) {
+          setErrorMessage('Correo o contraseña incorrectos.');
+        } else {
+          setErrorMessage('Error al conectar con el servidor.');
+        }
         return;
       }
 
       navigate('/admin/home');
-    } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
+    } catch (fallaAxios) {
+      const codigoFalla = fallaAxios.response?.status;
+
+      if (codigoFalla === 401 || codigoFalla === 400) {
+        setErrorMessage('Correo o contraseña incorrectos.');
       } else {
-        setErrorMessage('Error al conectar con el servicio administrativo');
+        setErrorMessage('Servidor no disponible. Intente más tarde.');
       }
     }
   };
@@ -110,6 +117,10 @@ function AdminLoginPage() {
                   }`}
                   {...register('username', {
                     required: 'El correo electrónico es obligatorio',
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: 'Ingrese un correo electrónico válido',
+                    },
                   })}
                 />
               </div>
@@ -151,6 +162,10 @@ function AdminLoginPage() {
                   }`}
                   {...register('password', {
                     required: 'La contraseña es obligatoria',
+                    minLength: {
+                      value: 8,
+                      message: 'La contraseña debe tener al menos 8 caracteres',
+                    },
                   })}
                 />
                 <button
@@ -216,13 +231,6 @@ function AdminLoginPage() {
               <span>Iniciar Sesión</span>
               <span className="text-sm">→</span>
             </button>
-
-            <div className="bg-med-primary-50 border border-med-primary-200/60 rounded-lg p-2.5 text-center text-xs text-med-primary-900">
-              <span className="font-semibold">Credenciales de prueba:</span>
-              <br />
-              Email: <code>admin@medportal.com</code> | Clave:{' '}
-              <code>admin123</code>
-            </div>
 
             {/* Error Message */}
             {errorMessage && (
