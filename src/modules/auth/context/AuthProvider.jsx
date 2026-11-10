@@ -12,17 +12,33 @@ function AuthProvider({ children }) {
     return Boolean(token);
   });
 
-  const singout = () => {
+  const [userRole, setUserRole] = useState(() => {
+    return localStorage.getItem('role') || null;
+  });
+
+  const singOut = () => {
     localStorage.clear();
     setIsAuthenticated(false);
+    setUserRole(null);
   };
 
-  const setAuthSession = (token) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
+  const setAuthSession = (data) => {
+    const tokenRecibido = data?.token || data?.data?.token || data;
+    const rolRecibido = data?.role || data?.data?.role;
+
+    if (tokenRecibido && rolRecibido) {
+      localStorage.setItem('token', tokenRecibido);
+      localStorage.setItem('role', rolRecibido);
+      setIsAuthenticated(true);
+      setUserRole(rolRecibido);
+    } else {
+      console.error(
+        'No se pudo establecer la sesión de autenticación: token o rol faltante'
+      );
+    }
   };
 
-  const singin = async (username, password) => {
+  const singIn = async (username, password) => {
     const { data, error } = await login(username, password);
 
     if (error) {
@@ -34,7 +50,7 @@ function AuthProvider({ children }) {
     return { error: null };
   };
 
-  const singinAdmin = async (username, password) => {
+  const singInAdmin = async (username, password) => {
     const { data, error } = await loginAdmin(username, password);
 
     if (error) {
@@ -46,7 +62,7 @@ function AuthProvider({ children }) {
     return { error: null };
   };
 
-  const singinPatient = async (username, password) => {
+  const singInPatient = async (username, password) => {
     const { data, error } = await loginPatient(username, password);
 
     if (error) {
@@ -62,10 +78,11 @@ function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        singin,
-        singinAdmin,
-        singinPatient,
-        singout,
+        userRole,
+        singIn,
+        singInAdmin,
+        singInPatient,
+        singOut,
         setAuthSession,
       }}
     >

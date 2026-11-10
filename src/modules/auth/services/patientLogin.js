@@ -7,7 +7,7 @@ export const loginPatient = async (username, password) => {
       dni: Number(password),
     });
 
-    return { data: response.data.token, error: null };
+    return { data: response.data, error: null };
   } catch (error) {
     return { data: null, error: error };
   }

@@ -15,11 +15,11 @@ function PatientLoginPage() {
   } = useForm({ defaultValues: { username: '', password: '' } });
 
   const navigate = useNavigate();
-  const { singinPatient } = useAuth();
+  const { singInPatient } = useAuth();
 
   const onValid = async (formData) => {
     try {
-      const { error } = await singinPatient(
+      const { error } = await singInPatient(
         formData.username,
         formData.password
       );

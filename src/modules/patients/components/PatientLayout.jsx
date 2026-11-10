@@ -5,11 +5,11 @@ import useAuth from '../../auth/hook/useAuth';
 function PatientLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { singout } = useAuth();
+  const { singOut } = useAuth();
 
   const handleLogout = () => {
-    singout();
-    navigate('/login');
+    singOut();
+    navigate('/login', { replace: true });
   };
 
   const getNavLinkClass = ({ isActive }) =>

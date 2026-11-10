@@ -15,13 +15,13 @@ function AdminLoginPage() {
   } = useForm({ defaultValues: { username: '', password: '' } });
 
   const navigate = useNavigate();
-  const { singinAdmin } = useAuth();
+  const { singInAdmin } = useAuth();
 
   const onValid = async (formData) => {
     setErrorMessage('');
 
     try {
-      const respuesta = await singinAdmin(formData.username, formData.password);
+      const respuesta = await singInAdmin(formData.username, formData.password);
 
       if (respuesta.error) {
         const codigoEstado = respuesta.error.response?.status;
