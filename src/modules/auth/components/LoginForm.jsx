@@ -18,25 +18,29 @@ function LoginForm({ redirectPath, title }) {
   const location = useLocation();
 
   const { singin } = useAuth();
+  const { singinAdmin, singinPatient } = useAuth();
 
   const onValid = async (formData) => {
     try {
-      const { error } = await singin(formData.username, formData.password);
+      const isAdminRoute = location.pathname.startsWith('/admin');
+
+      const loginFunction = isAdminRoute ? singinAdmin : singinPatient;
+
+      const { error } = await loginFunction(
+        formData.username,
+        formData.password
+      );
 
       if (error) {
         setErrorMessage(error.frontendErrorMessage);
-
         return;
       }
 
-      const defaultRedirect = location.pathname.startsWith('/admin')
-        ? '/admin/home'
-        : '/appointments';
-
+      const defaultRedirect = isAdminRoute ? '/admin/home' : '/appointments';
       navigate(redirectPath || defaultRedirect);
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
+      if (error?.response?.data?.errorCode) {
+        setErrorMessage(frontendErrorMessage[error?.response?.data?.errorCode]);
       } else {
         setErrorMessage('Llame a soporte');
       }

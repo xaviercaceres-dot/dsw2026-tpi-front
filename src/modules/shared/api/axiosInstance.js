@@ -23,7 +23,8 @@ instance.interceptors.response.use(
     return config;
   },
   (error) => {
-    if (error.status === 401) {
+    const isLoginPage = window.location.pathname.includes('login');
+    if (error.status === 401 && !isLoginPage) {
       if (window.location.pathname.includes('/admin/')) {
         localStorage.clear();
         window.location.href = '/login';
