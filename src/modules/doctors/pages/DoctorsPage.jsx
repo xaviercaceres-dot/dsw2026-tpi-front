@@ -31,14 +31,26 @@ function DoctorsPage() {
 
   const load = async () => {
     setLoading(true);
+    setError('');
     try {
-      setResult(
-        await getDoctors({
-          pageSize: 10,
-          pageIndex,
-          ...(name.length >= 3 ? { name } : {}),
-        })
-      );
+      const trimmedName = name.trim();
+      const response = await getDoctors({
+        pageSize: 10,
+        pageIndex,
+        ...(trimmedName.length >= 3 ? { name: trimmedName } : {}),
+      });
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      setResult({
+        data: items,
+        total: response?.total ?? items.length,
+        pageIndex: response?.pageIndex ?? pageIndex,
+        pageSize: response?.pageSize ?? 10,
+      });
     } catch (requestError) {
       setError(getApiError(requestError).message);
     } finally {
@@ -52,15 +64,46 @@ function DoctorsPage() {
   useEffect(() => {
     if (isAdmin)
       getSpecialties({ pageSize: 100, pageIndex: 1 })
-        .then((data) => setSpecialties(data.data || []))
+        .then((data) =>
+          setSpecialties(
+            Array.isArray(data)
+              ? data
+              : Array.isArray(data?.data)
+                ? data.data
+                : []
+          )
+        )
         .catch((requestError) => setError(getApiError(requestError).message));
   }, [isAdmin]);
 
   const submit = async (event) => {
     event.preventDefault();
+    setError('');
+    const trimmedName = form.name.trim();
+    const trimmedLicense = form.licenseNumber.trim();
+
+    if (
+      trimmedName.length < 3 ||
+      !trimmedLicense ||
+      !String(form.specialtyId).trim()
+    ) {
+      setError(
+        'Completá nombre (mín. 3 caracteres), matrícula y especialidad.'
+      );
+
+      return;
+    }
+
     try {
-      if (editingId) await updateDoctor(editingId, form);
-      else await createDoctor(form);
+      const payload = {
+        name: trimmedName,
+        licenseNumber: trimmedLicense,
+        license_number: trimmedLicense,
+        specialtyId: form.specialtyId,
+      };
+
+      if (editingId) await updateDoctor(editingId, payload);
+      else await createDoctor(payload);
 
       setForm(emptyForm);
       setEditingId(null);
@@ -176,7 +219,9 @@ function DoctorsPage() {
               {result.data.map((item) => (
                 <tr key={item.id} className="border-t">
                   <td className="p-4">{item.name}</td>
-                  <td className="p-4">{item.licenseNumber}</td>
+                  <td className="p-4">
+                    {item.licenseNumber || item.license_number || '—'}
+                  </td>
                   <td className="p-4">{item.specialty?.name || '—'}</td>
                   {isAdmin && (
                     <td className="p-4 flex gap-2">
@@ -186,8 +231,10 @@ function DoctorsPage() {
                           setEditingId(item.id);
                           setForm({
                             name: item.name,
-                            licenseNumber: item.licenseNumber,
-                            specialtyId: item.specialty?.id || '',
+                            licenseNumber:
+                              item.licenseNumber || item.license_number || '',
+                            specialtyId:
+                              item.specialty?.id ?? item.specialtyId ?? '',
                           });
                         }}
                       >

@@ -31,13 +31,24 @@ function SpecialtiesPage() {
     setLoading(true);
     setError('');
     try {
+      const trimmedName = name.trim();
       const data = await getSpecialties({
         pageSize: 10,
         pageIndex,
-        ...(name.length >= 3 ? { name } : {}),
+        ...(trimmedName.length >= 3 ? { name: trimmedName } : {}),
       });
+      const items = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
-      setResult(data);
+      setResult({
+        data: items,
+        total: data?.total ?? items.length,
+        pageIndex: data?.pageIndex ?? pageIndex,
+        pageSize: data?.pageSize ?? 10,
+      });
     } catch (requestError) {
       setError(getApiError(requestError).message);
     } finally {

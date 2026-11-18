@@ -34,9 +34,27 @@ function OverviewPage() {
             }),
           ]);
 
-        setDoctors(doctorResult.data || []);
-        setSpecialtiesCount(specialtyResult.total || 0);
-        setAppointmentsToday(appointmentResult.total || 0);
+        const doctorItems = Array.isArray(doctorResult)
+          ? doctorResult
+          : Array.isArray(doctorResult?.data)
+            ? doctorResult.data
+            : [];
+        const specialtyItems = Array.isArray(specialtyResult)
+          ? specialtyResult
+          : Array.isArray(specialtyResult?.data)
+            ? specialtyResult.data
+            : [];
+        const appointmentItems = Array.isArray(appointmentResult)
+          ? appointmentResult
+          : Array.isArray(appointmentResult?.data)
+            ? appointmentResult.data
+            : [];
+
+        setDoctors(doctorItems);
+        setSpecialtiesCount(specialtyResult?.total ?? specialtyItems.length);
+        setAppointmentsToday(
+          appointmentResult?.total ?? appointmentItems.length
+        );
       } catch (requestError) {
         setError(getApiError(requestError).message);
       } finally {
