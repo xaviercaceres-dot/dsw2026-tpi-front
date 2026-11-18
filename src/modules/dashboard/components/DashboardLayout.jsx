@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
 
 function DashboardLayout() {
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { signout } = useAuth();
 
   const handleLogout = () => {
@@ -16,9 +17,10 @@ function DashboardLayout() {
     {
       to: '/admin/home',
       label: 'Tablero',
+      isActiveMatch: (pathname) => pathname.startsWith('/admin/home'),
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-5 h-5 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -35,9 +37,12 @@ function DashboardLayout() {
     {
       to: '/admin/doctors',
       label: 'Doctores',
+      isActiveMatch: (pathname) =>
+        pathname.startsWith('/admin/doctors') ||
+        pathname.startsWith('/admin/availability'),
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-5 h-5 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -54,9 +59,10 @@ function DashboardLayout() {
     {
       to: '/admin/specialties',
       label: 'Especialidades',
+      isActiveMatch: (pathname) => pathname.startsWith('/admin/specialties'),
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-5 h-5 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -71,30 +77,14 @@ function DashboardLayout() {
       ),
     },
     {
-      to: '/admin/availability',
-      label: 'Disponibilidad',
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.75"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-    },
-    {
       to: '/admin/patients',
       label: 'Búsqueda de Pacientes',
+      isActiveMatch: (pathname) =>
+        pathname.startsWith('/admin/patients') ||
+        pathname.startsWith('/admin/patient-search'),
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-5 h-5 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -105,66 +95,63 @@ function DashboardLayout() {
             strokeWidth="1.75"
             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
           />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.75"
-            d="M21 21l-3.5-3.5"
-          />
         </svg>
       ),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-med-bg flex">
-      {/* Sidebar fijo para desktop / retráctil en móvil */}
+    <div className="min-h-screen bg-[#F4F7F9] flex">
+      {/* Sidebar izquierdo fijo */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-med-border flex flex-col justify-between transition-transform duration-200 sm:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col justify-between min-h-screen transition-transform duration-200 sm:translate-x-0 ${
           openMobileMenu ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
-          {/* Brand Logo Header */}
-          <div className="p-6 border-b border-med-border-subtle">
-            <h2 className="text-base font-bold text-med-primary-900 leading-tight">
+        <div className="flex flex-col flex-1">
+          {/* 1. Cabecera del Sidebar */}
+          <div className="p-6 border-b border-slate-100">
+            <h2 className="text-lg font-bold text-[#133B5C] leading-tight">
               Admin Portal
             </h2>
-            <span className="text-xs font-medium text-med-text-muted">
+            <p className="text-xs text-slate-400 mt-0.5">
               Healthcare Management
-            </span>
+            </p>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="p-3 space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setOpenMobileMenu(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-med-primary-50 text-med-primary-900 border-r-4 border-med-primary-900'
-                      : 'text-med-text-sub hover:bg-gray-50 hover:text-med-primary-900'
-                  }`
-                }
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+          {/* 2. Menú de Navegación */}
+          <nav className="p-4 space-y-1.5 flex-1">
+            {navItems.map((item) => {
+              const active = item.isActiveMatch(location.pathname);
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setOpenMobileMenu(false)}
+                  className={
+                    active
+                      ? 'bg-[#EBF3F9] text-[#133B5C] font-bold border-r-4 border-[#133B5C] rounded-l-lg py-2.5 px-4 flex items-center gap-3 text-sm transition'
+                      : 'text-slate-600 hover:bg-slate-50 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 text-sm transition'
+                  }
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
           </nav>
         </div>
 
-        {/* Footer Sidebar (Help, Logout & User profile) */}
-        <div className="p-4 border-t border-med-border-subtle space-y-3">
+        {/* 3. Pie del Sidebar */}
+        <div className="p-4 border-t border-slate-100 space-y-4">
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-med-text-sub hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+            className="flex items-center gap-2.5 text-xs font-semibold text-slate-500 hover:text-red-600 px-3 py-1.5 w-full transition"
           >
             <svg
-              className="w-4 h-4 text-med-text-muted"
+              className="w-4 h-4 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -179,16 +166,18 @@ function DashboardLayout() {
             <span>Cerrar Sesión</span>
           </button>
 
-          {/* User Profile Info */}
-          <div className="pt-3 border-t border-med-border flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-med-primary-100 text-med-primary-900 flex items-center justify-center font-bold text-xs">
+          <div className="border-t border-slate-100" />
+
+          {/* Bloque de Perfil Admin */}
+          <div className="flex items-center gap-3 px-2 pt-1">
+            <div className="w-9 h-9 rounded-full bg-[#DDF0FF] text-[#133B5C] font-bold text-xs flex items-center justify-center shrink-0">
               AD
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-semibold text-med-text-main truncate">
+              <p className="text-xs font-bold text-slate-800 truncate">
                 Admin User
               </p>
-              <p className="text-[11px] text-med-text-muted truncate">
+              <p className="text-[11px] text-slate-400 truncate">
                 Super Administrator
               </p>
             </div>
@@ -207,18 +196,15 @@ function DashboardLayout() {
       {/* Contenedor Principal */}
       <div className="flex-1 flex flex-col min-w-0 sm:pl-64">
         {/* Topbar móvil */}
-        <header className="sm:hidden bg-white border-b border-med-border px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center font-bold text-xs">
-              MC
-            </div>
-            <span className="font-bold text-sm text-med-primary-900">
-              Medical Center
-            </span>
+        <header className="sm:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-[#133B5C]">Admin Portal</h2>
+            <p className="text-[10px] text-slate-400">Healthcare Management</p>
           </div>
           <button
+            type="button"
             onClick={() => setOpenMobileMenu(!openMobileMenu)}
-            className="p-1.5 rounded-lg border border-med-border text-med-text-sub"
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-600"
           >
             <svg
               className="w-5 h-5"
