@@ -20,7 +20,7 @@ function getApiError(error) {
 
   return {
     status,
-    code: payload?.errorCode,
+    code: payload?.errorCode || payload?.code,
     message:
       payload?.message ||
       defaultMessages[status] ||

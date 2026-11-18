@@ -1,18 +1,58 @@
 import { useEffect, useState } from 'react';
 import { getSpecialties } from '../../specialties/services/specialtiesApi';
-import { getDoctors } from '../../doctors/services/doctorsApi';
+import {
+  getDoctorAvailabilities,
+  getDoctors,
+} from '../../doctors/services/doctorsApi';
 import { getAvailableSlots } from '../../availability/services/availabilityApi';
 import { createAppointment } from '../../appointments/services/appointmentsApi';
 import useAuth from '../../auth/hook/useAuth';
 import { getApiError } from '../../shared/api/apiError';
 
-function today() {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const day = String(currentDate.getDate()).padStart(2, '0');
+const DAY_INDEX_TO_SPANISH = {
+  0: 'DOMINGO',
+  1: 'LUNES',
+  2: 'MARTES',
+  3: 'MIÉRCOLES',
+  4: 'JUEVES',
+  5: 'VIERNES',
+  6: 'SÁBADO',
+};
+
+function formatDate(dateObj) {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+}
+
+function today() {
+  return formatDate(new Date());
+}
+
+function filterValidSlotsForDate(rawSlots, selectedDateStr) {
+  if (!Array.isArray(rawSlots)) return [];
+
+  const now = new Date();
+  const todayStr = formatDate(now);
+  const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  return rawSlots
+    .filter((item) => {
+      if (item.isReserved === true) return false;
+
+      if (item.status && item.status !== 'AVAILABLE') return false;
+
+      if (selectedDateStr === todayStr) {
+        const slotTime = (item.startTime || '').substring(0, 5);
+
+        return slotTime > currentHHmm;
+      }
+
+      return true;
+    })
+    .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 }
 
 function PatientHome() {
@@ -41,18 +81,84 @@ function PatientHome() {
       .catch((requestError) => setError(getApiError(requestError).message));
   }, []);
 
-  const searchSlots = async () => {
-    if (!doctorId || !date) return;
+  const searchSlots = async (
+    targetDoctorId = doctorId,
+    targetDate = date,
+    autoAdvance = false
+  ) => {
+    if (!targetDoctorId || !targetDate) return;
 
     setLoading(true);
     setError('');
     setSlot(null);
     try {
-      setSlots(await getAvailableSlots(doctorId, date));
+      const rawSlots = await getAvailableSlots(targetDoctorId, targetDate);
+      const validSlots = filterValidSlotsForDate(rawSlots, targetDate);
+
+      if (validSlots.length > 0 || !autoAdvance) {
+        setSlots(validSlots);
+
+        return;
+      }
+
+      const rules = await getDoctorAvailabilities(targetDoctorId);
+      const activeDays = new Set(
+        rules
+          .map((rule) =>
+            rule.day ? String(rule.day).trim().toUpperCase() : null
+          )
+          .filter(Boolean)
+      );
+
+      const baseDate = new Date();
+
+      for (let offset = 1; offset <= 14; offset += 1) {
+        const candidate = new Date(baseDate);
+
+        candidate.setDate(baseDate.getDate() + offset);
+        const dayName = DAY_INDEX_TO_SPANISH[candidate.getDay()];
+
+        if (activeDays.size > 0 && !activeDays.has(dayName)) {
+          continue;
+        }
+
+        const candidateStr = formatDate(candidate);
+        const candidateRaw = await getAvailableSlots(
+          targetDoctorId,
+          candidateStr
+        );
+        const candidateValid = filterValidSlotsForDate(
+          candidateRaw,
+          candidateStr
+        );
+
+        if (candidateValid.length > 0) {
+          setDate(candidateStr);
+          setSlots(candidateValid);
+
+          return;
+        }
+      }
+
+      setSlots([]);
     } catch (requestError) {
       setError(getApiError(requestError).message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDoctorChange = (event) => {
+    const selectedDoctorId = event.target.value;
+
+    setDoctorId(selectedDoctorId);
+    setSlots([]);
+    setSlot(null);
+    setMessage('');
+    setError('');
+
+    if (selectedDoctorId && date) {
+      searchSlots(selectedDoctorId, date, true);
     }
   };
 
@@ -72,17 +178,24 @@ function PatientHome() {
       setMessage('Turno reservado correctamente.');
       setSlot(null);
       setReason('');
-      await searchSlots();
+      await searchSlots(doctorId, date, false);
     } catch (requestError) {
       const apiError = getApiError(requestError);
+      const backendCode =
+        requestError.response?.data?.code ||
+        requestError.response?.data?.errorCode ||
+        apiError.code;
 
-      setError(
-        apiError.status === 409
-          ? 'El horario fue ocupado. Seleccioná otro.'
-          : apiError.message
-      );
-
-      if (apiError.status === 409) await searchSlots();
+      if (apiError.status === 409 || backendCode === 'APPOINTMENT_CONFLICT') {
+        setError(
+          requestError.response?.data?.message ||
+            'Lo sentimos, este horario acaba de ser reservado por otro paciente o ya no está disponible. Por favor, seleccione otro horario.'
+        );
+        setSlot(null);
+        await searchSlots(doctorId, date, false);
+      } else {
+        setError(apiError.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -110,6 +223,7 @@ function PatientHome() {
             setSpecialtyId(e.target.value);
             setDoctorId('');
             setSlots([]);
+            setSlot(null);
           }}
         >
           <option value="">Especialidad</option>
@@ -122,10 +236,7 @@ function PatientHome() {
         <select
           value={doctorId}
           className="border rounded px-3 py-2"
-          onChange={(e) => {
-            setDoctorId(e.target.value);
-            setSlots([]);
-          }}
+          onChange={handleDoctorChange}
         >
           <option value="">Médico</option>
           {filteredDoctors.map((item) => (
@@ -144,7 +255,7 @@ function PatientHome() {
         <button
           type="button"
           className="bg-med-primary-900 text-white rounded px-4 py-2"
-          onClick={searchSlots}
+          onClick={() => searchSlots(doctorId, date, false)}
         >
           Consultar horarios
         </button>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getDoctors } from '../../doctors/services/doctorsApi';
 import {
-  createAvailability,
-  updateAvailability,
-} from '../services/availabilityApi';
+  getDoctorAvailabilities,
+  getDoctors,
+} from '../../doctors/services/doctorsApi';
+import { updateAvailability } from '../services/availabilityApi';
 import { getApiError } from '../../shared/api/apiError';
 
 const days = [
@@ -16,11 +16,77 @@ const days = [
   'DOMINGO',
 ];
 
+const REVERSE_DAY_MAP = {
+  0: 'DOMINGO',
+  1: 'LUNES',
+  2: 'MARTES',
+  3: 'MIÉRCOLES',
+  4: 'JUEVES',
+  5: 'VIERNES',
+  6: 'SÁBADO',
+};
+
+function toMinutes(timeStr) {
+  if (!timeStr) return 0;
+
+  const [hours, minutes] = timeStr.substring(0, 5).split(':').map(Number);
+
+  return hours * 60 + minutes;
+}
+
+function normalizeRules(items) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  if (items.some((item) => item.day)) {
+    return items.map((item) => ({
+      day: String(item.day).trim().toUpperCase(),
+      startTime: (item.startTime || '08:00').substring(0, 5),
+      endTime: (item.endTime || '12:00').substring(0, 5),
+    }));
+  }
+
+  const groupedByDay = {};
+
+  items.forEach((slot) => {
+    if (!slot.date) return;
+
+    const datePart = String(slot.date).substring(0, 10);
+    const [year, month, day] = datePart.split('-').map(Number);
+    const dayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    const dayName = REVERSE_DAY_MAP[dayIndex];
+
+    if (!dayName) return;
+
+    const start = slot.startTime ? slot.startTime.substring(0, 5) : '09:00';
+    const end = slot.endTime ? slot.endTime.substring(0, 5) : '17:00';
+
+    if (!groupedByDay[dayName]) {
+      groupedByDay[dayName] = { startTime: start, endTime: end };
+    } else {
+      if (start < groupedByDay[dayName].startTime) {
+        groupedByDay[dayName].startTime = start;
+      }
+
+      if (end > groupedByDay[dayName].endTime) {
+        groupedByDay[dayName].endTime = end;
+      }
+    }
+  });
+
+  return days
+    .filter((dayName) => Boolean(groupedByDay[dayName]))
+    .map((dayName) => ({
+      day: dayName,
+      startTime: groupedByDay[dayName].startTime,
+      endTime: groupedByDay[dayName].endTime,
+    }));
+}
+
 function AvailabilityPage() {
   const [doctors, setDoctors] = useState([]);
   const [doctorId, setDoctorId] = useState('');
   const [ranges, setRanges] = useState([]);
-  const [operation, setOperation] = useState('update');
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -30,17 +96,50 @@ function AvailabilityPage() {
       .catch((requestError) => setError(getApiError(requestError).message));
   }, []);
 
+  const fetchAvailabilities = async (selectedId) => {
+    if (!selectedId) {
+      setRanges([]);
+
+      return;
+    }
+
+    setLoadingSchedule(true);
+    setError('');
+    try {
+      const data = await getDoctorAvailabilities(selectedId);
+      const loadedRanges = normalizeRules(data);
+
+      setRanges(loadedRanges);
+    } catch (requestError) {
+      setError(getApiError(requestError).message);
+      setRanges([]);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  };
+
+  const handleDoctorChange = (event) => {
+    const selectedId = event.target.value;
+
+    setDoctorId(selectedId);
+    setMessage('');
+    setError('');
+    fetchAvailabilities(selectedId);
+  };
+
   const addRange = () =>
     setRanges((currentRanges) => [
       ...currentRanges,
       { day: 'LUNES', startTime: '08:00', endTime: '12:00' },
     ]);
+
   const updateRange = (index, key, value) =>
     setRanges((currentRanges) =>
       currentRanges.map((item, current) =>
         current === index ? { ...item, [key]: value } : item
       )
     );
+
   const removeRange = (index) =>
     setRanges((currentRanges) =>
       currentRanges.filter((_, current) => current !== index)
@@ -57,8 +156,25 @@ function AvailabilityPage() {
       return;
     }
 
-    if (ranges.some((item) => item.startTime >= item.endTime)) {
+    if (
+      ranges.some(
+        (item) =>
+          !item.startTime || !item.endTime || item.startTime >= item.endTime
+      )
+    ) {
       setError('La hora inicial debe ser anterior a la final.');
+
+      return;
+    }
+
+    if (
+      ranges.some(
+        (item) => toMinutes(item.endTime) - toMinutes(item.startTime) < 30
+      )
+    ) {
+      setError(
+        'La diferencia entre la hora de inicio y fin debe ser de al menos 30 minutos.'
+      );
 
       return;
     }
@@ -68,6 +184,7 @@ function AvailabilityPage() {
 
       return result;
     }, {});
+
     const overlaps = Object.values(grouped).some((items) => {
       const sorted = [...items].sort((a, b) =>
         a.startTime.localeCompare(b.startTime)
@@ -85,19 +202,18 @@ function AvailabilityPage() {
     }
 
     try {
-      const request = { doctorId, days: ranges };
+      const request = {
+        doctorId,
+        days: ranges.map((item) => ({
+          day: item.day,
+          startTime: item.startTime.substring(0, 5),
+          endTime: item.endTime.substring(0, 5),
+        })),
+      };
 
-      if (operation === 'create') {
-        await createAvailability(request);
-      } else {
-        await updateAvailability(request);
-      }
-
-      setMessage(
-        operation === 'create'
-          ? 'Disponibilidad creada correctamente.'
-          : 'Disponibilidad reemplazada correctamente.'
-      );
+      await updateAvailability(request);
+      await fetchAvailabilities(doctorId);
+      setMessage('Disponibilidad guardada correctamente.');
     } catch (requestError) {
       setError(getApiError(requestError).message);
     }
@@ -121,7 +237,7 @@ function AvailabilityPage() {
           required
           value={doctorId}
           className="border rounded px-3 py-2"
-          onChange={(event) => setDoctorId(event.target.value)}
+          onChange={handleDoctorChange}
         >
           <option value="">Seleccionar médico</option>
           {doctors.map((doctor) => (
@@ -130,6 +246,17 @@ function AvailabilityPage() {
             </option>
           ))}
         </select>
+        {loadingSchedule && (
+          <p className="text-sm text-med-text-sub">
+            Cargando disponibilidad actual...
+          </p>
+        )}
+        {!loadingSchedule && doctorId && ranges.length === 0 && (
+          <p className="text-sm text-med-text-sub">
+            El médico no tiene rangos configurados para el mes actual. Agregá un
+            rango para comenzar.
+          </p>
+        )}
         {ranges.map((range, index) => (
           <div
             key={`${range.day}-${index}`}
@@ -176,29 +303,6 @@ function AvailabilityPage() {
         <div className="flex gap-2">
           <button
             type="button"
-            className={`border rounded px-3 py-2 ${
-              operation === 'create' ? 'bg-med-primary-100' : ''
-            }`}
-            onClick={() => {
-              setOperation('create');
-              setRanges([]);
-              setMessage('');
-              setError('');
-            }}
-          >
-            Crear nueva
-          </button>
-          <button
-            type="button"
-            className={`border rounded px-3 py-2 ${
-              operation === 'update' ? 'bg-med-primary-100' : ''
-            }`}
-            onClick={() => setOperation('update')}
-          >
-            Reemplazar
-          </button>
-          <button
-            type="button"
             className="border rounded px-3 py-2"
             onClick={addRange}
           >
@@ -212,7 +316,7 @@ function AvailabilityPage() {
           </button>
         </div>
         <p className="text-xs text-med-text-sub">
-          Los turnos ya reservados se conservan al reemplazar la configuración.
+          Los turnos ya reservados se conservan al actualizar la configuración.
         </p>
         {error && <p className="text-red-500">{error}</p>}
         {message && <p className="text-green-600">{message}</p>}
