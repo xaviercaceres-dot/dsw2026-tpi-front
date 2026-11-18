@@ -1,76 +1,85 @@
-import { createContext, useState } from 'react';
-import { login } from '../services/login';
+import { createContext, useCallback, useMemo, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
+import { registerAdmin as registerAdminRequest } from '../services/adminRegister';
 
 const AuthContext = createContext();
 
+function readSession() {
+  const token = sessionStorage.getItem('token');
+
+  if (!token) return null;
+
+  return {
+    token,
+    role: sessionStorage.getItem('role'),
+    dni: sessionStorage.getItem('dni')
+      ? Number(sessionStorage.getItem('dni'))
+      : null,
+  };
+}
+
+function clearStoredSession() {
+  ['token', 'role', 'dni'].forEach((key) => sessionStorage.removeItem(key));
+}
+
 function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem('token');
+  const [session, setSession] = useState(readSession);
 
-    return Boolean(token);
-  });
+  const setAuthSession = useCallback(({ token, role, dni = null }) => {
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('role', role);
 
-  const singout = () => {
-    localStorage.clear();
-    setIsAuthenticated(false);
-  };
+    if (dni === null) sessionStorage.removeItem('dni');
+    else sessionStorage.setItem('dni', String(dni));
 
-  const setAuthSession = (token) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
-  };
+    setSession({ token, role, dni });
+  }, []);
 
-  const singin = async (username, password) => {
-    const { data, error } = await login(username, password);
+  const signout = useCallback(() => {
+    clearStoredSession();
+    setSession(null);
+  }, []);
 
-    if (error) {
-      return { error };
-    }
+  const signinAdmin = useCallback(
+    async (email, password) => {
+      const { data } = await loginAdmin(email, password);
 
-    setAuthSession(data);
+      setAuthSession(data);
 
-    return { error: null };
-  };
+      return data;
+    },
+    [setAuthSession]
+  );
 
-  const singinAdmin = async (username, password) => {
-    const { data, error } = await loginAdmin(username, password);
+  const signinPatient = useCallback(
+    async (email, dni) => {
+      const { data } = await loginPatient(email, dni);
 
-    if (error) {
-      return { error };
-    }
+      setAuthSession({ ...data, dni: Number(dni) });
 
-    setAuthSession(data);
+      return data;
+    },
+    [setAuthSession]
+  );
 
-    return { error: null };
-  };
-
-  const singinPatient = async (username, password) => {
-    const { data, error } = await loginPatient(username, password);
-
-    if (error) {
-      return { error };
-    }
-
-    setAuthSession(data);
-
-    return { error: null };
-  };
+  const contextValue = useMemo(
+    () => ({
+      session,
+      isAuthenticated: Boolean(session),
+      role: session?.role,
+      dni: session?.dni,
+      signinAdmin,
+      signinPatient,
+      registerAdmin: registerAdminRequest,
+      signout,
+      setAuthSession,
+    }),
+    [session, signinAdmin, signinPatient, signout, setAuthSession]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        singin,
-        singinAdmin,
-        singinPatient,
-        singout,
-        setAuthSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 

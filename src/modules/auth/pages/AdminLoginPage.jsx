@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hook/useAuth';
-import { frontendErrorMessage } from '../helpers/backendError';
+import { getApiError } from '../../shared/api/apiError';
 
 function AdminLoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
@@ -12,37 +12,24 @@ function AdminLoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({ defaultValues: { username: '', password: '' } });
+  } = useForm({ defaultValues: { email: '', password: '' } });
 
   const navigate = useNavigate();
-  const { singinAdmin } = useAuth();
+  const { signinAdmin } = useAuth();
 
   const onValid = async (formData) => {
-    setErrorMessage('');
-
     try {
-      const respuesta = await singinAdmin(formData.username, formData.password);
+      const data = await signinAdmin(formData.email, formData.password);
 
-      if (respuesta.error) {
-        const codigoEstado = respuesta.error.response?.status;
+      if (data.role !== 'Administrador') {
+        setErrorMessage('La cuenta no tiene permisos administrativos');
 
-        if (codigoEstado === 401 || codigoEstado === 400) {
-          setErrorMessage('Correo o contraseña incorrectos.');
-        } else {
-          setErrorMessage('Error al conectar con el servidor.');
-        }
         return;
       }
 
       navigate('/admin/home');
-    } catch (fallaAxios) {
-      const codigoFalla = fallaAxios.response?.status;
-
-      if (codigoFalla === 401 || codigoFalla === 400) {
-        setErrorMessage('Correo o contraseña incorrectos.');
-      } else {
-        setErrorMessage('Servidor no disponible. Intente más tarde.');
-      }
+    } catch (error) {
+      setErrorMessage(getApiError(error).message);
     }
   };
 
@@ -109,24 +96,20 @@ function AdminLoginPage() {
                 </span>
                 <input
                   type="email"
-                  placeholder="admin@medportal.com"
+                  placeholder="admin@system.com"
                   className={`w-full border rounded-lg pl-10 pr-3.5 py-2.5 text-sm bg-white text-med-text-main placeholder-med-text-muted focus:outline-none focus:ring-2 focus:ring-med-primary-600 focus:border-transparent ${
-                    errors.username
+                    errors.email
                       ? 'border-red-400 bg-red-50/20'
                       : 'border-med-border'
                   }`}
-                  {...register('username', {
+                  {...register('email', {
                     required: 'El correo electrónico es obligatorio',
-                    pattern: {
-                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                      message: 'Ingrese un correo electrónico válido',
-                    },
                   })}
                 />
               </div>
-              {errors.username && (
+              {errors.email && (
                 <p className="text-xs text-red-500 font-medium">
-                  {errors.username.message}
+                  {errors.email.message}
                 </p>
               )}
             </div>
@@ -162,10 +145,6 @@ function AdminLoginPage() {
                   }`}
                   {...register('password', {
                     required: 'La contraseña es obligatoria',
-                    minLength: {
-                      value: 8,
-                      message: 'La contraseña debe tener al menos 8 caracteres',
-                    },
                   })}
                 />
                 <button

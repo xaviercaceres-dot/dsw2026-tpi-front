@@ -5,10 +5,10 @@ import useAuth from '../../auth/hook/useAuth';
 function DashboardLayout() {
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const navigate = useNavigate();
-  const { singout } = useAuth();
+  const { signout } = useAuth();
 
   const handleLogout = () => {
-    singout();
+    signout();
     navigate('/admin/login');
   };
 
@@ -66,6 +66,25 @@ function DashboardLayout() {
             strokeLinejoin="round"
             strokeWidth="1.75"
             d="M9 12h6m-3-3v6m-7 5h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+    },
+    {
+      to: '/admin/availability',
+      label: 'Disponibilidad',
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.75"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       ),
