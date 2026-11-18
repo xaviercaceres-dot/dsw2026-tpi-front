@@ -1,10 +1,5 @@
 import { instance } from '../../shared/api/axiosInstance';
-
-function getTodayString() {
-  const now = new Date();
-
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
+import { getTodayIsoLocal } from '../../shared/utils/dateUtils';
 
 function normalizePaginationResult(payload, queryParams = {}) {
   if (Array.isArray(payload)) {
@@ -50,7 +45,7 @@ export async function getAppointmentsByDate(params = {}) {
   const queryParams = {
     pageSize: params.pageSize ?? 10,
     pageIndex: params.pageIndex ?? 1,
-    date: params.date ? String(params.date).trim() : getTodayString(),
+    date: params.date ? String(params.date).trim() : getTodayIsoLocal(),
   };
 
   const response = await instance.get('/api/appointments', {
@@ -99,7 +94,7 @@ export async function searchAppointments(params = {}) {
 
   if (criteriaKeys.length === 0) {
     return getAppointmentsByDate({
-      date: getTodayString(),
+      date: getTodayIsoLocal(),
       pageSize: params.pageSize,
       pageIndex: params.pageIndex,
     });

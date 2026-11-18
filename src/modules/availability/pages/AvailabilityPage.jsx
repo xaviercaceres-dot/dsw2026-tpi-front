@@ -6,6 +6,9 @@ import {
 } from '../../doctors/services/doctorsApi';
 import { updateAvailability } from '../services/availabilityApi';
 import { getApiError } from '../../shared/api/apiError';
+import PageHeader from '../../shared/components/PageHeader';
+import FormField from '../../shared/components/FormField';
+import { formatTimeHHmm, timeToMinutes } from '../../shared/utils/dateUtils';
 
 const DAYS_OF_WEEK = [
   { key: 'LUNES', label: 'Lunes' },
@@ -39,14 +42,6 @@ function createDefaultSchedule() {
   }, {});
 }
 
-function toMinutes(timeStr) {
-  if (!timeStr) return 0;
-
-  const [hours, minutes] = timeStr.substring(0, 5).split(':').map(Number);
-
-  return hours * 60 + minutes;
-}
-
 function buildScheduleFromData(items) {
   const initialSchedule = createDefaultSchedule();
 
@@ -75,8 +70,8 @@ function buildScheduleFromData(items) {
 
     if (!dayName || !initialSchedule[dayName]) return;
 
-    const start = slot.startTime ? slot.startTime.substring(0, 5) : '09:00';
-    const end = slot.endTime ? slot.endTime.substring(0, 5) : '17:00';
+    const start = formatTimeHHmm(slot.startTime, '09:00');
+    const end = formatTimeHHmm(slot.endTime, '17:00');
 
     if (!groupedByDay[dayName]) {
       groupedByDay[dayName] = { startTime: start, endTime: end };
@@ -220,7 +215,7 @@ function AvailabilityPage() {
         return false;
       }
 
-      if (toMinutes(endTime) - toMinutes(startTime) < 30) {
+      if (timeToMinutes(endTime) - timeToMinutes(startTime) < 30) {
         setError(
           `En ${day.label}, la diferencia entre entrada y salida debe ser de al menos 30 minutos.`
         );
@@ -245,8 +240,8 @@ function AvailabilityPage() {
         Boolean(schedule[d.key]?.enabled)
       ).map((d) => ({
         day: d.key,
-        startTime: schedule[d.key].startTime.substring(0, 5),
-        endTime: schedule[d.key].endTime.substring(0, 5),
+        startTime: formatTimeHHmm(schedule[d.key].startTime, '09:00'),
+        endTime: formatTimeHHmm(schedule[d.key].endTime, '17:00'),
       }));
 
       await updateAvailability({
@@ -269,21 +264,14 @@ function AvailabilityPage() {
 
   return (
     <div>
-      {/* 1. Breadcrumb superior */}
-      <div className="flex items-center gap-2">
-        <span
-          onClick={() => navigate('/admin/doctors')}
-          className="text-xs text-slate-400 cursor-pointer hover:underline"
-        >
-          Doctores
-        </span>
-        <span className="text-xs text-slate-400">›</span>
-        <span className="text-xs font-bold text-[#133B5C]">
-          Disponibilidad Horaria
-        </span>
-      </div>
+      <PageHeader
+        breadcrumb={{
+          parentLabel: 'Doctores',
+          onParentClick: () => navigate('/admin/doctors'),
+          currentLabel: 'Disponibilidad Horaria',
+        }}
+      />
 
-      {/* 2. Encabezado */}
       <div>
         <h1 className="text-xl font-bold text-[#0F2942] mt-2">
           Gestionar Disponibilidad Horaria
@@ -294,32 +282,32 @@ function AvailabilityPage() {
         </p>
       </div>
 
-      {/* 3. Grilla de 2 Columnas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
         {/* Columna Izquierda */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Tarjeta 1: Seleccionar Profesional */}
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
-            <label className="text-xs font-bold text-[#133B5C] mb-2 block">
-              Seleccionar Profesional
-            </label>
-            <select
-              value={doctorId}
-              onChange={handleDoctorChange}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+            <FormField
+              label="Seleccionar Profesional"
+              labelClassName="text-xs font-bold text-[#133B5C] mb-2 block"
             >
-              <option value="">Seleccionar médico</option>
-              {doctors.map((doctor) => {
-                const specName =
-                  doctor.specialty?.name || doctor.specialty || 'General';
+              <select
+                value={doctorId}
+                onChange={handleDoctorChange}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+              >
+                <option value="">Seleccionar médico</option>
+                {doctors.map((doctor) => {
+                  const specName =
+                    doctor.specialty?.name || doctor.specialty || 'General';
 
-                return (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.name} - {specName}
-                  </option>
-                );
-              })}
-            </select>
+                  return (
+                    <option key={doctor.id} value={doctor.id}>
+                      {doctor.name} - {specName}
+                    </option>
+                  );
+                })}
+              </select>
+            </FormField>
 
             {selectedDoctor && (
               <div className="mt-4 bg-[#EBF5FB] rounded-xl p-3.5 flex items-center gap-3.5">
@@ -344,7 +332,6 @@ function AvailabilityPage() {
             )}
           </div>
 
-          {/* Tarjeta 2: Caja informativa */}
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-start gap-3">
             <svg
               className="text-[#133B5C] w-5 h-5 shrink-0 mt-0.5"
@@ -373,7 +360,6 @@ function AvailabilityPage() {
             onSubmit={handleSave}
             className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden"
           >
-            {/* Cabecera */}
             <div className="px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <h2 className="text-sm font-bold text-[#133B5C]">
                 Configuración de Horarios
@@ -396,7 +382,6 @@ function AvailabilityPage() {
               </div>
             </div>
 
-            {/* Cabecera de tabla */}
             <div className="bg-[#DCEEFB] px-6 py-2.5 grid grid-cols-12 text-[11px] font-bold text-[#133B5C] uppercase">
               <div className="col-span-3">DÍA</div>
               <div className="col-span-3">ESTADO</div>
@@ -404,7 +389,6 @@ function AvailabilityPage() {
               <div className="col-span-3">SALIDA</div>
             </div>
 
-            {/* Filas por cada día */}
             <div className="divide-y divide-slate-100">
               {loadingSchedule ? (
                 <div className="px-6 py-8 text-center text-xs text-slate-400">
@@ -424,7 +408,6 @@ function AvailabilityPage() {
                       key={day.key}
                       className="px-6 py-3.5 grid grid-cols-12 items-center gap-2"
                     >
-                      {/* DÍA */}
                       <div className="col-span-3">
                         <span
                           className={`text-xs font-semibold ${
@@ -435,7 +418,6 @@ function AvailabilityPage() {
                         </span>
                       </div>
 
-                      {/* ESTADO */}
                       <div className="col-span-3 flex items-center gap-2.5">
                         <button
                           type="button"
@@ -463,7 +445,6 @@ function AvailabilityPage() {
                         </span>
                       </div>
 
-                      {/* ENTRADA */}
                       <div className="col-span-3">
                         <input
                           type="time"
@@ -480,7 +461,6 @@ function AvailabilityPage() {
                         />
                       </div>
 
-                      {/* SALIDA */}
                       <div className="col-span-3">
                         <input
                           type="time"
@@ -513,7 +493,6 @@ function AvailabilityPage() {
               </div>
             )}
 
-            {/* Pie de tarjeta */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
               <button
                 type="button"
