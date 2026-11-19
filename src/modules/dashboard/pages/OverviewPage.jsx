@@ -9,14 +9,13 @@ import MetricCard from '../../shared/components/MetricCard';
 import DataTableCard from '../../shared/components/DataTableCard';
 import SearchInput from '../../shared/components/SearchInput';
 import DoctorAvatar from '../../shared/components/DoctorAvatar';
-import StatusBadge from '../../shared/components/StatusBadge';
 import { usePagination } from '../../shared/hooks/usePagination';
 import { getTodayIsoLocal } from '../../shared/utils/dateUtils';
 
+// Columnas del mockup "Admin - Página Principal".
 const TABLE_COLUMNS = [
   { key: 'name', label: 'NOMBRE DEL DOCTOR' },
   { key: 'specialty', label: 'ESPECIALIDAD' },
-  { key: 'status', label: 'ESTADO DE DISPONIBILIDAD' },
   { key: 'actions', label: 'ACCIONES', align: 'right' },
 ];
 
@@ -44,35 +43,15 @@ function OverviewPage() {
             }),
           ]);
 
-        const doctorItems = Array.isArray(doctorResult)
-          ? doctorResult
-          : Array.isArray(doctorResult?.data)
-            ? doctorResult.data
-            : [];
-        const specialtyItems = Array.isArray(specialtyResult)
-          ? specialtyResult
-          : Array.isArray(specialtyResult?.data)
-            ? specialtyResult.data
-            : [];
-        const appointmentItems = Array.isArray(appointmentResult)
-          ? appointmentResult
-          : Array.isArray(appointmentResult?.data)
-            ? appointmentResult.data
-            : [];
-
-        const bookedAppointments = appointmentItems.filter(
-          (item) =>
-            (item.appointmentsStatus || item.status || 'BOOKED') === 'BOOKED'
+        // Turnos confirmados = citas del día en estado BOOKED (las canceladas no cuentan).
+        const bookedAppointments = appointmentResult.data.filter(
+          (item) => item.appointmentsStatus === 'BOOKED'
         );
 
-        setDoctors(doctorItems);
-        setDoctorsTotal(doctorResult?.total ?? doctorItems.length);
-        setSpecialtiesCount(specialtyResult?.total ?? specialtyItems.length);
-        setAppointmentsToday(
-          appointmentItems.length > 0
-            ? bookedAppointments.length
-            : (appointmentResult?.total ?? 0)
-        );
+        setDoctors(doctorResult.data);
+        setDoctorsTotal(doctorResult.total);
+        setSpecialtiesCount(specialtyResult.total);
+        setAppointmentsToday(bookedAppointments.length);
       } catch (requestError) {
         setError(getApiError(requestError).message);
       } finally {
@@ -129,7 +108,7 @@ function OverviewPage() {
       {/* Fila de 3 Tarjetas de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <MetricCard
-          badgeText="+4 este mes"
+          badgeText="Activos"
           badgeVariant="success"
           label="DOCTORES ACTIVOS"
           value={doctorsTotal}
@@ -199,7 +178,10 @@ function OverviewPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+        <div
+          role="alert"
+          className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600"
+        >
           {error}
         </div>
       )}
@@ -245,10 +227,7 @@ function OverviewPage() {
               </div>
             </td>
             <td className="px-6 py-4 text-xs text-slate-600">
-              {doctor.specialty?.name || doctor.specialty || 'Sin especialidad'}
-            </td>
-            <td className="px-6 py-4">
-              <StatusBadge status="ACTIVO" label="Activo" />
+              {doctor.specialty?.name || 'Sin especialidad'}
             </td>
             <td className="px-6 py-4 text-right">
               <button

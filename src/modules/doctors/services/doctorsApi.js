@@ -1,68 +1,34 @@
 import { instance } from '../../shared/api/axiosInstance';
+import { normalizePage } from '../../shared/api/pagination';
 
-function normalizeDoctorPayload(payload = {}) {
-  const rawSpecialtyId = payload.specialtyId;
-  const numericSpecialtyId = Number(rawSpecialtyId);
-  const specialtyId =
-    !Number.isNaN(numericSpecialtyId) &&
-    String(rawSpecialtyId).trim() !== '' &&
-    !/[a-fA-F-]/.test(String(rawSpecialtyId))
-      ? numericSpecialtyId
-      : rawSpecialtyId;
-
-  const license = (
-    payload.licenseNumber ??
-    payload.license_number ??
-    ''
-  ).trim();
+// Cuerpo esperado por el backend (DoctorModel.Request): { name, licenseNumber, specialtyId }.
+function toDoctorRequest(payload = {}) {
+  const license = (payload.licenseNumber ?? '').trim();
 
   return {
     name: (payload.name ?? '').trim(),
-    specialtyId,
-    licenseNumber: license,
-    license_number: license,
+    licenseNumber: license === '' ? null : license,
+    specialtyId: payload.specialtyId,
   };
 }
 
+// GET /api/doctors?pageSize=&pageIndex=&name= (name: entre 3 y 100 caracteres).
 export async function getDoctors(params = {}) {
   const queryParams = { ...params };
+  const trimmedName = String(queryParams.name ?? '').trim();
 
-  if (queryParams.name !== undefined) {
-    const trimmedName = String(queryParams.name).trim();
-
-    if (trimmedName.length >= 3) {
-      queryParams.name = trimmedName;
-    } else {
-      delete queryParams.name;
-    }
-  }
+  if (trimmedName.length >= 3) queryParams.name = trimmedName;
+  else delete queryParams.name;
 
   const response = await instance.get('/api/doctors', { params: queryParams });
-  const payload = response.data;
 
-  if (Array.isArray(payload)) {
-    return {
-      data: payload,
-      total: payload.length,
-      pageIndex: queryParams.pageIndex || 1,
-      pageSize: queryParams.pageSize || payload.length || 10,
-    };
-  }
-
-  const items = Array.isArray(payload?.data) ? payload.data : [];
-
-  return {
-    data: items,
-    total: payload?.total ?? items.length,
-    pageIndex: payload?.pageIndex ?? queryParams.pageIndex ?? 1,
-    pageSize: payload?.pageSize ?? queryParams.pageSize ?? 10,
-  };
+  return normalizePage(response.data, queryParams);
 }
 
 export async function createDoctor(payload) {
   const response = await instance.post(
     '/api/doctors',
-    normalizeDoctorPayload(payload)
+    toDoctorRequest(payload)
   );
 
   return response.data;
@@ -71,7 +37,7 @@ export async function createDoctor(payload) {
 export async function updateDoctor(id, payload) {
   const response = await instance.put(
     `/api/doctors/${id}`,
-    normalizeDoctorPayload(payload)
+    toDoctorRequest(payload)
   );
 
   return response.data;
@@ -83,12 +49,9 @@ export async function deleteDoctor(id) {
   return response.data;
 }
 
+// GET /api/doctors/{id}/availabilities → disponibilidad del mes en curso [{ id, day, startTime, endTime }].
 export async function getDoctorAvailabilities(id) {
   const response = await instance.get(`/api/doctors/${id}/availabilities`);
 
-  return Array.isArray(response.data)
-    ? response.data
-    : Array.isArray(response.data?.availabilities)
-      ? response.data.availabilities
-      : [];
+  return Array.isArray(response.data) ? response.data : [];
 }

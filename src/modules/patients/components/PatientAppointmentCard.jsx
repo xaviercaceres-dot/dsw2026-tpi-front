@@ -2,19 +2,17 @@ import StatusBadge from '../../shared/components/StatusBadge';
 import { formatTimeHHmm } from '../../shared/utils/dateUtils';
 
 const STATUS_MAP = {
+  BOOKED: { status: 'BOOKED', label: 'Confirmado' },
   CANCELLED: { status: 'CANCELLED', label: 'Cancelado' },
   ATTENDED: { status: 'ATTENDED', label: 'Completado' },
-  BOOKED: { status: 'BOOKED', label: 'Confirmado' },
+  NO_SHOW: { status: 'INACTIVE', label: 'Ausente' },
 };
 
-function PatientAppointmentCard({ appointment, onCancel }) {
+function PatientAppointmentCard({ appointment, cancelling = false, onCancel }) {
   const status = String(appointment.status || 'BOOKED').toUpperCase();
-  const badgeMeta = STATUS_MAP[status] || STATUS_MAP.BOOKED;
-  const specialtyName =
-    appointment.speciality ||
-    appointment.specialty ||
-    appointment.doctor?.specialty?.name ||
-    'Consulta Médica';
+  const badgeMeta = STATUS_MAP[status] || { status: 'INFO', label: status };
+  // El DTO del backend (AppointmentModel.Response) usa la propiedad "speciality".
+  const specialtyName = appointment.speciality || 'Consulta Médica';
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
@@ -33,9 +31,7 @@ function PatientAppointmentCard({ appointment, onCancel }) {
         </div>
 
         <h2 className="text-lg font-bold text-[#133B5C]">
-          {appointment.doctorName ||
-            appointment.doctor?.name ||
-            'Profesional Médico'}
+          {appointment.doctorName || 'Profesional Médico'}
         </h2>
         <p className="text-xs text-slate-500 mt-1">
           Fecha:{' '}
@@ -52,11 +48,11 @@ function PatientAppointmentCard({ appointment, onCancel }) {
 
         <button
           type="button"
-          disabled={status !== 'BOOKED'}
+          disabled={status !== 'BOOKED' || cancelling}
           onClick={() => onCancel(appointment.id)}
           className="w-full py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition disabled:opacity-40"
         >
-          Cancelar Turno
+          {cancelling ? 'Cancelando...' : 'Cancelar Turno'}
         </button>
       </div>
     </div>

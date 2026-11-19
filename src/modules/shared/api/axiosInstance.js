@@ -19,6 +19,9 @@ instance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Evita redirecciones repetidas cuando varias solicitudes simultáneas reciben 401.
+let redirectingToLogin = false;
+
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,7 +32,8 @@ instance.interceptors.response.use(
         window.location.pathname === '/login' ||
         window.location.pathname === '/admin/login';
 
-      if (!isPublicPath) {
+      if (!isPublicPath && !redirectingToLogin) {
+        redirectingToLogin = true;
         window.location.href = isAdminPath ? '/admin/login' : '/login';
       }
     }

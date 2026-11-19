@@ -4,7 +4,8 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
-import RoleRoute from './modules/auth/components/RoleRoute';
+import ProtectedRoute from './modules/auth/components/ProtectedRoute';
+import { ROLES } from './modules/auth/helpers/roles';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
@@ -36,18 +37,14 @@ const routes = [
     path: '/admin/login',
     element: <AdminLoginPage />,
   },
-  {
-    path: '/admin/register',
-    element: <AdminRegisterPage />,
-  },
 
   // Rutas privadas de pacientes (URL base y turnos)
   {
     path: '/',
     element: (
-      <RoleRoute role="Paciente" redirectTo="/login">
+      <ProtectedRoute role={ROLES.PATIENT} redirectTo="/login">
         <PatientLayout />
-      </RoleRoute>
+      </ProtectedRoute>
     ),
     children: [
       {
@@ -65,9 +62,9 @@ const routes = [
   {
     path: '/admin',
     element: (
-      <RoleRoute role="Administrador" redirectTo="/admin/login">
+      <ProtectedRoute role={ROLES.ADMIN} redirectTo="/admin/login">
         <DashboardLayout />
-      </RoleRoute>
+      </ProtectedRoute>
     ),
     children: [
       {
@@ -101,6 +98,10 @@ const routes = [
       {
         path: 'availability',
         element: <AvailabilityPage />,
+      },
+      {
+        path: 'register',
+        element: <AdminRegisterPage />,
       },
     ],
   },

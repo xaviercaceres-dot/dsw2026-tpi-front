@@ -1,10 +1,9 @@
 import DataTableCard from '../../shared/components/DataTableCard';
-import StatusBadge from '../../shared/components/StatusBadge';
 
+// Columnas del mockup "Admin - Especialidad - Listado".
 const COLUMNS = [
   { key: 'name', label: 'NOMBRE DE LA ESPECIALIDAD' },
   { key: 'description', label: 'DESCRIPCIÓN' },
-  { key: 'status', label: 'ESTADO' },
   { key: 'actions', label: 'ACCIONES', align: 'right' },
 ];
 
@@ -52,15 +51,13 @@ function SpecialtiesTable({
           <td className="px-6 py-4 text-xs text-slate-500 max-w-md">
             {item.description}
           </td>
-          <td className="px-6 py-4">
-            <StatusBadge status="ACTIVE_NO_DOT" label="Active" />
-          </td>
           <td className="px-6 py-4 text-right">
             {isAdmin && (
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
                   title="Editar especialidad"
+                  aria-label={`Editar ${item.name}`}
                   onClick={() => onEdit(item)}
                   className="text-slate-400 hover:text-[#133B5C] transition"
                 >
@@ -82,6 +79,7 @@ function SpecialtiesTable({
                 <button
                   type="button"
                   title="Eliminar especialidad"
+                  aria-label={`Eliminar ${item.name}`}
                   onClick={() => onDelete(item.id)}
                   className="text-red-400 hover:text-red-600 transition"
                 >

@@ -66,7 +66,7 @@ function AppointmentsSearchPage() {
 
     if (!hasBackendFilter) {
       setError(
-        'Para buscar en el servidor debes seleccionar al menos una Fecha, Especialidad, Médico o ingresar un DNI válido de 7 u 8 dígitos.'
+        'Para buscar, seleccioná al menos una fecha, una especialidad o un doctor, o ingresá un DNI de 7 u 8 dígitos.'
       );
       setResult({ data: [], total: 0, pageIndex: 1, pageSize: 10 });
 
@@ -102,12 +102,10 @@ function AppointmentsSearchPage() {
         response = await searchAppointments(params);
       }
 
-      const rawItems = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : [];
+      const rawItems = response.data;
 
+      // El backend no filtra por nombre: un texto que no es un DNI completo se busca
+      // localmente en los resultados de la página obtenida.
       const filteredItems =
         trimmedQuery && !isValidDni
           ? rawItems.filter((item) => matchesLocalQuery(item, trimmedQuery))
@@ -116,11 +114,9 @@ function AppointmentsSearchPage() {
       setResult({
         data: filteredItems,
         total:
-          trimmedQuery && !isValidDni
-            ? filteredItems.length
-            : (response?.total ?? filteredItems.length),
-        pageIndex: response?.pageIndex ?? pageIndex,
-        pageSize: response?.pageSize ?? 10,
+          trimmedQuery && !isValidDni ? filteredItems.length : response.total,
+        pageIndex: response.pageIndex,
+        pageSize: response.pageSize,
       });
     } catch (requestError) {
       setError(getApiError(requestError).message);
@@ -135,20 +131,8 @@ function AppointmentsSearchPage() {
       getDoctors({ pageSize: 100, pageIndex: 1 }),
     ])
       .then(([specialtyData, doctorData]) => {
-        setSpecialties(
-          Array.isArray(specialtyData)
-            ? specialtyData
-            : Array.isArray(specialtyData?.data)
-              ? specialtyData.data
-              : []
-        );
-        setDoctors(
-          Array.isArray(doctorData)
-            ? doctorData
-            : Array.isArray(doctorData?.data)
-              ? doctorData.data
-              : []
-        );
+        setSpecialties(specialtyData.data);
+        setDoctors(doctorData.data);
       })
       .catch((requestError) => setError(getApiError(requestError).message));
 
@@ -198,14 +182,16 @@ function AppointmentsSearchPage() {
       />
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+        <div
+          role="alert"
+          className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600"
+        >
           {error}
         </div>
       )}
 
       <AppointmentsTable
         appointments={result.data}
-        fallbackDate={filters.date}
         loading={loading}
         pagination={{
           currentPage: result.pageIndex,

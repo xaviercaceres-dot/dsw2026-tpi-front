@@ -1,42 +1,78 @@
 import { createContext, useCallback, useMemo, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
+import { logout } from '../services/logout';
 import { registerAdmin as registerAdminRequest } from '../services/adminRegister';
+import { isKnownRole, ROLES } from '../helpers/roles';
 
 const AuthContext = createContext();
+const SESSION_KEYS = ['token', 'role', 'dni', 'email'];
+
+function clearStoredSession() {
+  SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
+}
 
 function readSession() {
   const token = sessionStorage.getItem('token');
+  const role = sessionStorage.getItem('role');
 
   if (!token) return null;
 
+  // Una sesión con un rol desconocido (por ejemplo, guardada por una versión anterior) se descarta.
+  if (!isKnownRole(role)) {
+    clearStoredSession();
+
+    return null;
+  }
+
+  const dni = sessionStorage.getItem('dni');
+
   return {
     token,
-    role: sessionStorage.getItem('role'),
-    dni: sessionStorage.getItem('dni')
-      ? Number(sessionStorage.getItem('dni'))
-      : null,
+    role,
+    dni: dni ? Number(dni) : null,
+    email: sessionStorage.getItem('email'),
   };
 }
 
-function clearStoredSession() {
-  ['token', 'role', 'dni'].forEach((key) => sessionStorage.removeItem(key));
+function createRoleError(message) {
+  const error = new Error(message);
+
+  error.isRoleError = true;
+
+  return error;
 }
 
 function AuthProvider({ children }) {
   const [session, setSession] = useState(readSession);
 
-  const setAuthSession = useCallback(({ token, role, dni = null }) => {
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('role', role);
+  const setAuthSession = useCallback(
+    ({ token, role, dni = null, email = null }) => {
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('role', role);
 
-    if (dni === null) sessionStorage.removeItem('dni');
-    else sessionStorage.setItem('dni', String(dni));
+      if (dni === null) sessionStorage.removeItem('dni');
+      else sessionStorage.setItem('dni', String(dni));
 
-    setSession({ token, role, dni });
-  }, []);
+      if (email === null) sessionStorage.removeItem('email');
+      else sessionStorage.setItem('email', email);
 
-  const signout = useCallback(() => {
+      setSession({ token, role, dni, email });
+    },
+    []
+  );
+
+  const signout = useCallback(async () => {
+    // Se revoca el token en el backend antes de borrar la sesión local.
+    // Si falla (token vencido o backend caído) igual se cierra la sesión en el navegador.
+    if (sessionStorage.getItem('token')) {
+      try {
+        await logout();
+      } catch {
+        // Sin acción: la sesión local se elimina igualmente.
+      }
+    }
+
     clearStoredSession();
     setSession(null);
   }, []);
@@ -45,7 +81,11 @@ function AuthProvider({ children }) {
     async (email, password) => {
       const { data } = await loginAdmin(email, password);
 
-      setAuthSession(data);
+      if (data.role !== ROLES.ADMIN) {
+        throw createRoleError('La cuenta no tiene permisos administrativos.');
+      }
+
+      setAuthSession({ token: data.token, role: data.role, email });
 
       return data;
     },
@@ -56,7 +96,18 @@ function AuthProvider({ children }) {
     async (email, dni) => {
       const { data } = await loginPatient(email, dni);
 
-      setAuthSession({ ...data, dni: Number(dni) });
+      if (data.role !== ROLES.PATIENT) {
+        throw createRoleError(
+          'La cuenta ingresada no corresponde a un paciente.'
+        );
+      }
+
+      setAuthSession({
+        token: data.token,
+        role: data.role,
+        dni: Number(dni),
+        email,
+      });
 
       return data;
     },
@@ -69,13 +120,13 @@ function AuthProvider({ children }) {
       isAuthenticated: Boolean(session),
       role: session?.role,
       dni: session?.dni,
+      email: session?.email,
       signinAdmin,
       signinPatient,
       registerAdmin: registerAdminRequest,
       signout,
-      setAuthSession,
     }),
-    [session, signinAdmin, signinPatient, signout, setAuthSession]
+    [session, signinAdmin, signinPatient, signout]
   );
 
   return (

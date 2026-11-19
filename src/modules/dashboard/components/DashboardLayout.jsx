@@ -8,8 +8,8 @@ function DashboardLayout() {
   const location = useLocation();
   const { signout } = useAuth();
 
-  const handleLogout = () => {
-    signout();
+  const handleLogout = async () => {
+    await signout();
     navigate('/admin/login');
   };
 
@@ -204,6 +204,8 @@ function DashboardLayout() {
           <button
             type="button"
             onClick={() => setOpenMobileMenu(!openMobileMenu)}
+            aria-label="Abrir menú de navegación"
+            aria-expanded={openMobileMenu}
             className="p-1.5 rounded-lg border border-slate-200 text-slate-600"
           >
             <svg

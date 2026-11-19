@@ -49,7 +49,7 @@ function AppointmentSearchFilters({
         >
           <SearchInput
             value={filters.dni}
-            placeholder="Johnathan Doe"
+            placeholder="Nombre o DNI, ej.: 40123456"
             className="w-full"
             onChange={(value) => onChange({ ...filters, dni: value })}
           />

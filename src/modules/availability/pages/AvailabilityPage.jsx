@@ -4,7 +4,10 @@ import {
   getDoctorAvailabilities,
   getDoctors,
 } from '../../doctors/services/doctorsApi';
-import { updateAvailability } from '../services/availabilityApi';
+import {
+  createAvailability,
+  updateAvailability,
+} from '../services/availabilityApi';
 import { getApiError } from '../../shared/api/apiError';
 import PageHeader from '../../shared/components/PageHeader';
 import FormField from '../../shared/components/FormField';
@@ -105,6 +108,8 @@ function AvailabilityPage() {
   const [doctors, setDoctors] = useState([]);
   const [doctorId, setDoctorId] = useState(initialDoctorIdParam);
   const [schedule, setSchedule] = useState(createDefaultSchedule);
+  // Indica si el médico ya tiene disponibilidad cargada para el mes en curso.
+  const [hasCurrentAvailability, setHasCurrentAvailability] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -113,6 +118,7 @@ function AvailabilityPage() {
   const fetchAvailabilities = async (selectedId) => {
     if (!selectedId) {
       setSchedule(createDefaultSchedule());
+      setHasCurrentAvailability(false);
 
       return;
     }
@@ -123,9 +129,11 @@ function AvailabilityPage() {
       const data = await getDoctorAvailabilities(selectedId);
 
       setSchedule(buildScheduleFromData(data));
+      setHasCurrentAvailability(data.length > 0);
     } catch (requestError) {
       setError(getApiError(requestError).message);
       setSchedule(createDefaultSchedule());
+      setHasCurrentAvailability(false);
     } finally {
       setLoadingSchedule(false);
     }
@@ -134,11 +142,7 @@ function AvailabilityPage() {
   useEffect(() => {
     getDoctors({ pageSize: 100, pageIndex: 1 })
       .then((result) => {
-        const list = Array.isArray(result)
-          ? result
-          : Array.isArray(result?.data)
-            ? result.data
-            : [];
+        const list = result.data;
 
         setDoctors(list);
 
@@ -244,13 +248,16 @@ function AvailabilityPage() {
         endTime: formatTimeHHmm(schedule[d.key].endTime, '17:00'),
       }));
 
-      await updateAvailability({
-        doctorId,
-        days: enabledPayload,
-      });
+      const payload = { doctorId, days: enabledPayload };
+
+      // POST crea la disponibilidad del mes; PUT la sobrescribe si ya existía (mismo payload).
+      if (hasCurrentAvailability) await updateAvailability(payload);
+      else await createAvailability(payload);
 
       await fetchAvailabilities(doctorId);
-      setMessage('Disponibilidad guardada correctamente.');
+      setMessage(
+        'Disponibilidad guardada correctamente. Se generaron los turnos de 30 minutos hasta fin de mes.'
+      );
     } catch (requestError) {
       setError(getApiError(requestError).message);
     } finally {
@@ -297,8 +304,7 @@ function AvailabilityPage() {
               >
                 <option value="">Seleccionar médico</option>
                 {doctors.map((doctor) => {
-                  const specName =
-                    doctor.specialty?.name || doctor.specialty || 'General';
+                  const specName = doctor.specialty?.name || 'General';
 
                   return (
                     <option key={doctor.id} value={doctor.id}>
@@ -319,10 +325,7 @@ function AvailabilityPage() {
                     {selectedDoctor.name}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                    ID:{' '}
-                    {selectedDoctor.licenseNumber ||
-                      selectedDoctor.license_number ||
-                      'MED-99201'}
+                    ID: {selectedDoctor.licenseNumber || '—'}
                   </p>
                   <p className="text-[11px] font-bold text-[#133B5C] mt-0.5">
                     Sede Central
@@ -347,9 +350,9 @@ function AvailabilityPage() {
               />
             </svg>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Los cambios realizados se aplicarán a partir de la próxima semana
-              calendario. Las citas ya programadas no se verán afectadas
-              automáticamente.
+              Los cambios generan turnos de 30 minutos desde hoy hasta fin de
+              mes, sin incluir feriados. Las citas ya programadas no se verán
+              afectadas automáticamente.
             </p>
           </div>
         </div>
@@ -360,7 +363,7 @@ function AvailabilityPage() {
             onSubmit={handleSave}
             className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden"
           >
-            <div className="px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <h2 className="text-sm font-bold text-[#133B5C]">
                 Configuración de Horarios
               </h2>
@@ -382,7 +385,7 @@ function AvailabilityPage() {
               </div>
             </div>
 
-            <div className="bg-[#DCEEFB] px-6 py-2.5 grid grid-cols-12 text-[11px] font-bold text-[#133B5C] uppercase">
+            <div className="hidden sm:grid bg-[#DCEEFB] px-6 py-2.5 grid-cols-12 text-[11px] font-bold text-[#133B5C] uppercase">
               <div className="col-span-3">DÍA</div>
               <div className="col-span-3">ESTADO</div>
               <div className="col-span-3">ENTRADA</div>
@@ -406,9 +409,9 @@ function AvailabilityPage() {
                   return (
                     <div
                       key={day.key}
-                      className="px-6 py-3.5 grid grid-cols-12 items-center gap-2"
+                      className="px-4 sm:px-6 py-3.5 grid grid-cols-2 sm:grid-cols-12 items-center gap-x-3 gap-y-2"
                     >
-                      <div className="col-span-3">
+                      <div className="sm:col-span-3">
                         <span
                           className={`text-xs font-semibold ${
                             isActive ? 'text-slate-800' : 'text-slate-400'
@@ -418,11 +421,12 @@ function AvailabilityPage() {
                         </span>
                       </div>
 
-                      <div className="col-span-3 flex items-center gap-2.5">
+                      <div className="sm:col-span-3 flex items-center justify-end sm:justify-start gap-2.5">
                         <button
                           type="button"
                           role="switch"
                           aria-checked={isActive}
+                          aria-label={`Atiende los ${day.label.toLowerCase()}`}
                           onClick={() => toggleDay(day.key)}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                             isActive ? 'bg-[#133B5C]' : 'bg-slate-200'
@@ -445,15 +449,19 @@ function AvailabilityPage() {
                         </span>
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="sm:col-span-3">
+                        <span className="sm:hidden block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                          Entrada
+                        </span>
                         <input
                           type="time"
+                          aria-label={`Entrada ${day.label}`}
                           disabled={!isActive}
                           value={dayData.startTime}
                           onChange={(e) =>
                             updateDayTime(day.key, 'startTime', e.target.value)
                           }
-                          className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium w-28 sm:w-32 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${
+                          className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium w-full sm:w-32 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${
                             isActive
                               ? 'bg-white text-slate-700'
                               : 'bg-slate-50 text-slate-300 cursor-not-allowed'
@@ -461,15 +469,19 @@ function AvailabilityPage() {
                         />
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="sm:col-span-3">
+                        <span className="sm:hidden block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                          Salida
+                        </span>
                         <input
                           type="time"
+                          aria-label={`Salida ${day.label}`}
                           disabled={!isActive}
                           value={dayData.endTime}
                           onChange={(e) =>
                             updateDayTime(day.key, 'endTime', e.target.value)
                           }
-                          className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium w-28 sm:w-32 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${
+                          className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium w-full sm:w-32 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${
                             isActive
                               ? 'bg-white text-slate-700'
                               : 'bg-slate-50 text-slate-300 cursor-not-allowed'
@@ -483,17 +495,23 @@ function AvailabilityPage() {
             </div>
 
             {error && (
-              <div className="mx-6 my-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+              <div
+                role="alert"
+                className="mx-4 sm:mx-6 my-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600"
+              >
                 {error}
               </div>
             )}
             {message && (
-              <div className="mx-6 my-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+              <div
+                role="status"
+                className="mx-4 sm:mx-6 my-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700"
+              >
                 {message}
               </div>
             )}
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+            <div className="px-4 sm:px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/admin/doctors')}

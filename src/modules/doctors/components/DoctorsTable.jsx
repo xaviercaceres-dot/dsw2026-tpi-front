@@ -2,10 +2,10 @@ import DataTableCard from '../../shared/components/DataTableCard';
 import DoctorAvatar from '../../shared/components/DoctorAvatar';
 import StatusBadge from '../../shared/components/StatusBadge';
 
+// Columnas del mockup "Admin - Doctor - Listado".
 const COLUMNS = [
   { key: 'name', label: 'NOMBRE DEL DOCTOR' },
   { key: 'specialty', label: 'ESPECIALIDAD' },
-  { key: 'status', label: 'ESTADO DE DISPONIBILIDAD' },
   { key: 'actions', label: 'ACCIONES', align: 'right' },
 ];
 
@@ -35,7 +35,7 @@ function DoctorsTable({
               <div>
                 <p className="font-bold text-[#133B5C] text-xs">{item.name}</p>
                 <p className="text-[11px] text-slate-400">
-                  ID: {item.licenseNumber || item.license_number || '—'}
+                  ID: {item.licenseNumber || '—'}
                 </p>
               </div>
             </div>
@@ -43,17 +43,15 @@ function DoctorsTable({
           <td className="px-6 py-4">
             <StatusBadge
               status="SPECIALTY"
-              label={item.specialty?.name || item.specialty || '—'}
+              label={item.specialty?.name || '—'}
             />
-          </td>
-          <td className="px-6 py-4">
-            <StatusBadge status="ACTIVE" label="Active" />
           </td>
           <td className="px-6 py-4 text-right">
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
                 title="Ver disponibilidad"
+                aria-label={`Ver disponibilidad de ${item.name}`}
                 onClick={() => onViewAvailability(item.id)}
                 className="text-slate-400 hover:text-[#133B5C] transition"
               >
@@ -83,6 +81,7 @@ function DoctorsTable({
                   <button
                     type="button"
                     title="Editar doctor"
+                    aria-label={`Editar ${item.name}`}
                     onClick={() => onEdit(item)}
                     className="text-slate-400 hover:text-[#133B5C] transition"
                   >
@@ -104,6 +103,7 @@ function DoctorsTable({
                   <button
                     type="button"
                     title="Eliminar doctor"
+                    aria-label={`Eliminar ${item.name}`}
                     onClick={() => onDelete(item.id)}
                     className="text-red-400 hover:text-red-600 transition"
                   >
