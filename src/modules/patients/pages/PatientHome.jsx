@@ -6,92 +6,18 @@ import { getAvailableSlots } from '../../availability/services/availabilityApi';
 import { createAppointment } from '../../appointments/services/appointmentsApi';
 import useAuth from '../../auth/hook/useAuth';
 import { getApiError } from '../../shared/api/apiError';
-import FormField from '../../shared/components/FormField';
 import {
-  formatDateToIsoLocal,
-  formatTimeHHmm,
-} from '../../shared/utils/dateUtils';
+  BOOKING_ERROR_MESSAGES,
+  DAYS_IN_WINDOW,
+  buildDaysWindow,
+  filterValidSlotsForDate,
+  formatRangeHeaderLabel,
+  validateBookingReason,
+} from '../helpers/bookingUtils';
+import DoctorSearchBar from '../components/DoctorSearchBar';
 import SelectedDoctorBanner from '../components/SelectedDoctorBanner';
 import WeeklySlotsGrid from '../components/WeeklySlotsGrid';
 import AppointmentSummaryBar from '../components/AppointmentSummaryBar';
-
-const DAYS_IN_WINDOW = 5;
-const REASON_MIN_LENGTH = 5;
-const REASON_MAX_LENGTH = 300;
-const DAY_ABBR = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
-const DAY_FULL = [
-  'Domingo',
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-];
-const MONTH_NAMES = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
-
-const bookingErrorMessages = {
-  APPOINTMENT_CONFLICT:
-    'Lo sentimos, ese horario acaba de ser reservado por otro paciente. Por favor, seleccioná otro turno.',
-};
-
-function buildDayMeta(offsetFromToday) {
-  const base = new Date();
-  const d = new Date(
-    base.getFullYear(),
-    base.getMonth(),
-    base.getDate() + offsetFromToday
-  );
-
-  return {
-    dateStr: formatDateToIsoLocal(d),
-    dayAbbr: DAY_ABBR[d.getDay()],
-    fullDayName: DAY_FULL[d.getDay()],
-    dayNumber: String(d.getDate()).padStart(2, '0'),
-    monthName: MONTH_NAMES[d.getMonth()],
-    monthShort: MONTH_NAMES[d.getMonth()].slice(0, 3).toUpperCase(),
-    year: d.getFullYear(),
-  };
-}
-
-function buildDaysWindow(startOffset) {
-  return Array.from({ length: DAYS_IN_WINDOW }, (_, i) =>
-    buildDayMeta(startOffset + i)
-  );
-}
-
-function filterValidSlotsForDate(rawSlots, selectedDateStr) {
-  if (!Array.isArray(rawSlots)) return [];
-
-  const now = new Date();
-  const todayStr = formatDateToIsoLocal(now);
-  const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-  return rawSlots
-    .filter((item) => {
-      if (item.status && item.status !== 'AVAILABLE') return false;
-
-      if (selectedDateStr === todayStr) {
-        return formatTimeHHmm(item.startTime) > currentHHmm;
-      }
-
-      return true;
-    })
-    .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-}
 
 function PatientHome() {
   const { dni } = useAuth();
@@ -113,8 +39,6 @@ function PatientHome() {
 
   const daysWindow = buildDaysWindow(windowOffset);
 
-  // Consulta los turnos libres (GET /api/availabilities?doctorId=&date=) de cada día de la ventana.
-  // No limpia los mensajes: así un conflicto informado antes de recargar sigue visible.
   const loadWeekSlots = async (targetDoctorId, startOffset) => {
     if (!targetDoctorId) return;
 
@@ -184,8 +108,7 @@ function PatientHome() {
     setError('');
   };
 
-  const handleSpecialtyChange = (event) => {
-    const nextSpecId = event.target.value;
+  const handleSpecialtyChange = (nextSpecId) => {
     const matchingDocs = nextSpecId
       ? doctors.filter((doc) => matchesSpecialty(doc, nextSpecId))
       : doctors;
@@ -200,9 +123,7 @@ function PatientHome() {
     if (nextDocId) loadWeekSlots(nextDocId, 0);
   };
 
-  const handleDoctorChange = (event) => {
-    const nextDocId = event.target.value;
-
+  const handleDoctorChange = (nextDocId) => {
     setDoctorId(nextDocId);
     resetSelection();
     setSlotsByDate({});
@@ -242,15 +163,10 @@ function PatientHome() {
   const book = async () => {
     if (!selectedSlot || !doctorId) return;
 
-    const finalReason = reason.trim();
+    const validationError = validateBookingReason(reason);
 
-    if (
-      finalReason.length < REASON_MIN_LENGTH ||
-      finalReason.length > REASON_MAX_LENGTH
-    ) {
-      setReasonError(
-        `Ingresá el motivo de la consulta (entre ${REASON_MIN_LENGTH} y ${REASON_MAX_LENGTH} caracteres).`
-      );
+    if (validationError) {
+      setReasonError(validationError);
 
       return;
     }
@@ -264,7 +180,7 @@ function PatientHome() {
         doctorId,
         availabilitySlotId: selectedSlot.id,
         patient: { dni },
-        reason: finalReason,
+        reason: reason.trim(),
       });
       setMessage('Turno reservado correctamente.');
       setSelectedSlot(null);
@@ -272,12 +188,10 @@ function PatientHome() {
       setReason('');
       await loadWeekSlots(doctorId, windowOffset);
     } catch (requestError) {
-      const apiError = getApiError(requestError, bookingErrorMessages);
+      const apiError = getApiError(requestError, BOOKING_ERROR_MESSAGES);
 
       setError(apiError.message);
 
-      // Flujo alternativo del CU01: el turno fue tomado por otro paciente, se informa
-      // el conflicto y se actualizan los horarios para que elija otro.
       if (apiError.status === 409) {
         setSelectedSlot(null);
         setSelectedDateStr('');
@@ -288,12 +202,9 @@ function PatientHome() {
     }
   };
 
-  const firstDay = daysWindow[0];
-  const lastDay = daysWindow[daysWindow.length - 1];
-  const rangeHeaderLabel = `${firstDay.fullDayName} ${firstDay.dayNumber} - ${lastDay.fullDayName} ${lastDay.dayNumber}, ${lastDay.monthName}`;
-
+  const rangeHeaderLabel = formatRangeHeaderLabel(daysWindow);
   const selectedDayMeta =
-    daysWindow.find((d) => d.dateStr === selectedDateStr) || firstDay;
+    daysWindow.find((d) => d.dateStr === selectedDateStr) || daysWindow[0];
 
   const noDoctorsMessage = !catalogLoaded
     ? ''
@@ -305,81 +216,15 @@ function PatientHome() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-5">
-      {/* 1. Buscador de Especialidad y Doctor */}
-      <section className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-[#0F2942]">
-          Reservar Turno Médico
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5 mb-5">
-          Seleccione la especialidad y el profesional para continuar.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <FormField
-            label="Seleccionar Especialidad"
-            labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
-            className="md:col-span-5"
-          >
-            <select
-              value={specialtyId}
-              onChange={handleSpecialtyChange}
-              aria-label="Seleccionar Especialidad"
-              className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
-            >
-              <option value="">Todas las especialidades</option>
-              {specialties.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            label="Seleccionar Doctor"
-            labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
-            className="md:col-span-4"
-          >
-            <select
-              value={doctorId}
-              onChange={handleDoctorChange}
-              aria-label="Seleccionar Doctor"
-              className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
-            >
-              <option value="">Seleccionar profesional</option>
-              {filteredDoctors.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <div className="md:col-span-3">
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 w-full transition"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <span>Buscar Disponibilidad</span>
-            </button>
-          </div>
-        </div>
-      </section>
+      <DoctorSearchBar
+        specialties={specialties}
+        doctors={filteredDoctors}
+        specialtyId={specialtyId}
+        doctorId={doctorId}
+        onSpecialtyChange={handleSpecialtyChange}
+        onDoctorChange={handleDoctorChange}
+        onSearch={handleSearch}
+      />
 
       {error && (
         <div
@@ -406,10 +251,8 @@ function PatientHome() {
         </div>
       )}
 
-      {/* 2. Banner del Médico Seleccionado */}
       <SelectedDoctorBanner doctor={selectedDoctor} />
 
-      {/* 3. Grilla Semanal de Horarios */}
       {selectedDoctor && (
         <WeeklySlotsGrid
           daysWindow={daysWindow}
@@ -425,7 +268,6 @@ function PatientHome() {
         />
       )}
 
-      {/* 4. Barra Inferior de RESUMEN DE SELECCIÓN */}
       <AppointmentSummaryBar
         selectedSlot={selectedSlot}
         selectedDayMeta={selectedDayMeta}
