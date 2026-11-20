@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAppointmentsByDate } from '../../appointments/services/appointmentsApi';
-import { getApiError } from '../../shared/api/apiError';
-import { getDoctors } from '../../doctors/services/doctorsApi';
-import { getSpecialties } from '../../specialties/services/specialtiesApi';
+import { useOverview } from '../hook/useOverview';
+import Button from '../../shared/components/Button';
 import PageHeader from '../../shared/components/PageHeader';
 import MetricCard from '../../shared/components/MetricCard';
 import DataTableCard from '../../shared/components/DataTableCard';
 import SearchInput from '../../shared/components/SearchInput';
 import DoctorAvatar from '../../shared/components/DoctorAvatar';
-import { usePagination } from '../../shared/hooks/usePagination';
-import { getTodayIsoLocal } from '../../shared/utils/dateUtils';
 
-// Columnas del mockup "Admin - Página Principal".
 const TABLE_COLUMNS = [
   { key: 'name', label: 'NOMBRE DEL DOCTOR' },
   { key: 'specialty', label: 'ESPECIALIDAD' },
@@ -21,64 +15,15 @@ const TABLE_COLUMNS = [
 
 function OverviewPage() {
   const navigate = useNavigate();
-  const [doctors, setDoctors] = useState([]);
-  const [doctorsTotal, setDoctorsTotal] = useState(0);
-  const [specialtiesCount, setSpecialtiesCount] = useState(0);
-  const [appointmentsToday, setAppointmentsToday] = useState(0);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const loadOverview = async () => {
-      try {
-        const [doctorResult, specialtyResult, appointmentResult] =
-          await Promise.all([
-            getDoctors({ pageSize: 100, pageIndex: 1 }),
-            getSpecialties({ pageSize: 100, pageIndex: 1 }),
-            getAppointmentsByDate({
-              date: getTodayIsoLocal(),
-              pageSize: 100,
-              pageIndex: 1,
-            }),
-          ]);
-
-        // Turnos confirmados = citas del día en estado BOOKED (las canceladas no cuentan).
-        const bookedAppointments = appointmentResult.data.filter(
-          (item) => item.appointmentsStatus === 'BOOKED'
-        );
-
-        setDoctors(doctorResult.data);
-        setDoctorsTotal(doctorResult.total);
-        setSpecialtiesCount(specialtyResult.total);
-        setAppointmentsToday(bookedAppointments.length);
-      } catch (requestError) {
-        setError(getApiError(requestError).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOverview();
-  }, []);
-
-  const filteredDoctors = useMemo(
-    () =>
-      doctors.filter((doctor) =>
-        (doctor.name || '').toLowerCase().includes(search.toLowerCase())
-      ),
-    [doctors, search]
-  );
-
   const {
-    currentPage,
-    totalPages,
-    paginatedItems: visibleDoctors,
-    totalItems,
-    pageSize,
-    setCurrentPage,
-    handlePageChange,
-  } = usePagination(filteredDoctors, 3);
+    metrics,
+    visibleDoctors,
+    search,
+    loading,
+    error,
+    pagination,
+    handleSearchChange,
+  } = useOverview(3);
 
   return (
     <div>
@@ -87,31 +32,30 @@ function OverviewPage() {
         subtitle="Configure el personal médico y las especialidades del departamento."
         actions={
           <>
-            <button
-              type="button"
+            <Button
+              variant="default"
+              className="py-2.5 text-xs font-semibold"
               onClick={() => navigate('/admin/doctors?action=create')}
-              className="bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition"
             >
               + Agregar Nuevo Doctor
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              className="py-2.5 text-xs font-semibold"
               onClick={() => navigate('/admin/specialties?action=create')}
-              className="bg-white border border-[#133B5C] text-[#133B5C] hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-lg text-xs transition"
             >
               + Agregar Nueva Especialidad
-            </button>
+            </Button>
           </>
         }
       />
 
-      {/* Fila de 3 Tarjetas de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <MetricCard
           badgeText="Activos"
           badgeVariant="success"
           label="DOCTORES ACTIVOS"
-          value={doctorsTotal}
+          value={metrics.doctorsTotal}
           loading={loading}
           icon={
             <svg
@@ -134,7 +78,7 @@ function OverviewPage() {
           badgeText="Estable"
           badgeVariant="neutral"
           label="ESPECIALIDADES ACTIVAS"
-          value={specialtiesCount}
+          value={metrics.specialtiesCount}
           loading={loading}
           icon={
             <svg
@@ -157,7 +101,7 @@ function OverviewPage() {
           badgeText="Hoy"
           badgeVariant="info"
           label="TURNOS CONFIRMADOS PARA HOY"
-          value={appointmentsToday}
+          value={metrics.appointmentsToday}
           loading={loading}
           icon={
             <svg
@@ -186,7 +130,6 @@ function OverviewPage() {
         </div>
       )}
 
-      {/* Directorio de Profesionales Médicos */}
       <DataTableCard
         title="Directorio de Profesionales Médicos"
         headerActions={
@@ -195,23 +138,14 @@ function OverviewPage() {
             placeholder="Buscar por nombre..."
             className="w-full sm:w-64"
             inputClassName="bg-[#F4F7F9] py-1.5"
-            onChange={(value) => {
-              setSearch(value);
-              setCurrentPage(1);
-            }}
+            onChange={handleSearchChange}
           />
         }
         columns={TABLE_COLUMNS}
         loading={loading}
         emptyText="No hay médicos para mostrar."
         itemCount={visibleDoctors.length}
-        pagination={{
-          currentPage,
-          totalPages,
-          totalItems,
-          pageSize,
-          onPageChange: handlePageChange,
-        }}
+        pagination={pagination}
       >
         {visibleDoctors.map((doctor) => (
           <tr
@@ -230,13 +164,13 @@ function OverviewPage() {
               {doctor.specialty?.name || 'Sin especialidad'}
             </td>
             <td className="px-6 py-4 text-right">
-              <button
-                type="button"
+              <Button
+                variant="link"
+                className="text-xs"
                 onClick={() => navigate('/admin/doctors')}
-                className="text-[#133B5C] font-bold text-xs hover:underline"
               >
                 Ver Detalle
-              </button>
+              </Button>
             </td>
           </tr>
         ))}

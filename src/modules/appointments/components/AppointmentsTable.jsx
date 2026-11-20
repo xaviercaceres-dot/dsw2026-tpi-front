@@ -14,7 +14,6 @@ const COLUMNS = [
   { key: 'actions', label: 'ACCIONES', align: 'right' },
 ];
 
-// Estados del turno definidos por el enunciado: BOOKED, CANCELLED, ATTENDED, NO_SHOW.
 const STATUS_MAP = {
   BOOKED: { status: 'CONFIRMED', label: 'CONFIRMADO' },
   CANCELLED: { status: 'CANCELLED', label: 'CANCELADO' },

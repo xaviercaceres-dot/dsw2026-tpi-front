@@ -1,3 +1,4 @@
+import Button from '../../shared/components/Button';
 import FormField from '../../shared/components/FormField';
 
 function DoctorSearchBar({
@@ -60,10 +61,10 @@ function DoctorSearchBar({
         </FormField>
 
         <div className="md:col-span-3">
-          <button
-            type="button"
+          <Button
+            variant="default"
             onClick={onSearch}
-            className="bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 w-full transition"
+            className="w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2"
           >
             <svg
               className="w-4 h-4"
@@ -80,7 +81,7 @@ function DoctorSearchBar({
               />
             </svg>
             <span>Buscar Disponibilidad</span>
-          </button>
+          </Button>
         </div>
       </div>
     </section>

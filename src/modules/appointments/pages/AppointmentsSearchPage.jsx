@@ -1,168 +1,21 @@
-import { useEffect, useState } from 'react';
-import { getSpecialties } from '../../specialties/services/specialtiesApi';
-import { getDoctors } from '../../doctors/services/doctorsApi';
-import {
-  getAppointmentsByDate,
-  searchAppointments,
-} from '../services/appointmentsApi';
-import { getApiError } from '../../shared/api/apiError';
+import { useAppointmentsSearch } from '../hook/useAppointmentsSearch';
 import PageHeader from '../../shared/components/PageHeader';
-import { getTodayIsoLocal } from '../../shared/utils/dateUtils';
 import AppointmentSearchFilters from '../components/AppointmentSearchFilters';
 import AppointmentsTable from '../components/AppointmentsTable';
 
-function matchesLocalQuery(item, query) {
-  if (!query) return true;
-
-  const q = query.toLowerCase();
-  const dniStr = String(item.patient?.dni ?? item.patientDni ?? '');
-  const emailStr = String(item.patient?.email ?? '').toLowerCase();
-  const fullNameStr = String(
-    item.patient?.fullName ?? item.patientName ?? ''
-  ).toLowerCase();
-  const doctorNameStr = String(
-    item.doctor?.name ?? item.doctorName ?? ''
-  ).toLowerCase();
-
-  return (
-    dniStr.includes(query) ||
-    emailStr.includes(q) ||
-    fullNameStr.includes(q) ||
-    doctorNameStr.includes(q)
-  );
-}
-
 function AppointmentsSearchPage() {
-  const [specialties, setSpecialties] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [filters, setFilters] = useState(() => ({
-    specialtyId: '',
-    doctorId: '',
-    dni: '',
-    date: getTodayIsoLocal(),
-  }));
-  const [result, setResult] = useState({
-    data: [],
-    total: 0,
-    pageIndex: 1,
-    pageSize: 10,
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const executeSearch = async (activeFilters, pageIndex = 1) => {
-    const trimmedQuery = String(activeFilters.dni ?? '').trim();
-    const isValidDni = /^\d{7,8}$/.test(trimmedQuery);
-    const hasDate = Boolean(
-      activeFilters.date && String(activeFilters.date).trim()
-    );
-    const hasSpecialty = Boolean(
-      activeFilters.specialtyId && String(activeFilters.specialtyId).trim()
-    );
-    const hasDoctor = Boolean(
-      activeFilters.doctorId && String(activeFilters.doctorId).trim()
-    );
-    const hasBackendFilter = hasDate || hasSpecialty || hasDoctor || isValidDni;
-
-    if (!hasBackendFilter) {
-      setError(
-        'Para buscar, seleccioná al menos una fecha, una especialidad o un doctor, o ingresá un DNI de 7 u 8 dígitos.'
-      );
-      setResult({ data: [], total: 0, pageIndex: 1, pageSize: 10 });
-
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      let response;
-
-      if (hasDate && !hasSpecialty && !hasDoctor && !isValidDni) {
-        response = await getAppointmentsByDate({
-          date: String(activeFilters.date).trim(),
-          pageSize: 10,
-          pageIndex,
-        });
-      } else {
-        const params = {
-          pageSize: 10,
-          pageIndex,
-          ...(hasSpecialty
-            ? { specialtyId: String(activeFilters.specialtyId).trim() }
-            : {}),
-          ...(hasDoctor
-            ? { doctorId: String(activeFilters.doctorId).trim() }
-            : {}),
-          ...(isValidDni ? { dni: Number(trimmedQuery) } : {}),
-          ...(hasDate ? { date: String(activeFilters.date).trim() } : {}),
-        };
-
-        response = await searchAppointments(params);
-      }
-
-      const rawItems = response.data;
-
-      // El backend no filtra por nombre: un texto que no es un DNI completo se busca
-      // localmente en los resultados de la página obtenida.
-      const filteredItems =
-        trimmedQuery && !isValidDni
-          ? rawItems.filter((item) => matchesLocalQuery(item, trimmedQuery))
-          : rawItems;
-
-      setResult({
-        data: filteredItems,
-        total:
-          trimmedQuery && !isValidDni ? filteredItems.length : response.total,
-        pageIndex: response.pageIndex,
-        pageSize: response.pageSize,
-      });
-    } catch (requestError) {
-      setError(getApiError(requestError).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    Promise.all([
-      getSpecialties({ pageSize: 100, pageIndex: 1 }),
-      getDoctors({ pageSize: 100, pageIndex: 1 }),
-    ])
-      .then(([specialtyData, doctorData]) => {
-        setSpecialties(specialtyData.data);
-        setDoctors(doctorData.data);
-      })
-      .catch((requestError) => setError(getApiError(requestError).message));
-
-    const initialFilters = {
-      specialtyId: '',
-      doctorId: '',
-      dni: '',
-      date: getTodayIsoLocal(),
-    };
-
-    executeSearch(initialFilters, 1);
-  }, []);
-
-  const search = (pageIndex = 1) => {
-    executeSearch(filters, pageIndex);
-  };
-
-  const handleClear = () => {
-    const resetFilters = {
-      specialtyId: '',
-      doctorId: '',
-      dni: '',
-      date: getTodayIsoLocal(),
-    };
-
-    setFilters(resetFilters);
-    executeSearch(resetFilters, 1);
-  };
-
-  const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
+  const {
+    specialties,
+    doctors,
+    filters,
+    setFilters,
+    appointments,
+    error,
+    loading,
+    pagination,
+    handleApply,
+    handleClear,
+  } = useAppointmentsSearch();
 
   return (
     <div>
@@ -177,7 +30,7 @@ function AppointmentsSearchPage() {
         specialties={specialties}
         doctors={doctors}
         onChange={setFilters}
-        onApply={() => search(1)}
+        onApply={handleApply}
         onClear={handleClear}
       />
 
@@ -191,15 +44,9 @@ function AppointmentsSearchPage() {
       )}
 
       <AppointmentsTable
-        appointments={result.data}
+        appointments={appointments}
         loading={loading}
-        pagination={{
-          currentPage: result.pageIndex,
-          totalPages,
-          totalItems: result.total,
-          pageSize: result.pageSize,
-          onPageChange: search,
-        }}
+        pagination={pagination}
       />
     </div>
   );

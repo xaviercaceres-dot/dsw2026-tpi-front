@@ -11,7 +11,6 @@ const STATUS_MAP = {
 function PatientAppointmentCard({ appointment, cancelling = false, onCancel }) {
   const status = String(appointment.status || 'BOOKED').toUpperCase();
   const badgeMeta = STATUS_MAP[status] || { status: 'INFO', label: status };
-  // El DTO del backend (AppointmentModel.Response) usa la propiedad "speciality".
   const specialtyName = appointment.speciality || 'Consulta Médica';
 
   return (

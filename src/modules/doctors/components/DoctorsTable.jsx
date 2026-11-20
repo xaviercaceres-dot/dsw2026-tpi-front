@@ -2,7 +2,6 @@ import DataTableCard from '../../shared/components/DataTableCard';
 import DoctorAvatar from '../../shared/components/DoctorAvatar';
 import StatusBadge from '../../shared/components/StatusBadge';
 
-// Columnas del mockup "Admin - Doctor - Listado".
 const COLUMNS = [
   { key: 'name', label: 'NOMBRE DEL DOCTOR' },
   { key: 'specialty', label: 'ESPECIALIDAD' },

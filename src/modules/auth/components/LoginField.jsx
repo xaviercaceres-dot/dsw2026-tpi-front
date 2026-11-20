@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { EyeIcon, EyeOffIcon } from './AuthIcons';
 
-// Molécula: label + ícono + input + mensaje de error (debajo del campo, en rojo).
-// Con canToggle el valor se oculta como una contraseña y se puede mostrar con el botón del ojo.
 function LoginField({
   id,
   label,

@@ -9,7 +9,6 @@ import { ROLES } from './modules/auth/helpers/roles';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
-import AdminRegisterPage from './modules/auth/pages/AdminRegisterPage';
 
 // Patients Module
 import PatientLoginPage from './modules/patients/pages/PatientLoginPage';
@@ -42,7 +41,7 @@ const routes = [
   {
     path: '/',
     element: (
-      <ProtectedRoute role={ROLES.PATIENT} redirectTo="/login">
+      <ProtectedRoute allowedRoles={[ROLES.PATIENT]} redirectTo="/login">
         <PatientLayout />
       </ProtectedRoute>
     ),
@@ -62,7 +61,7 @@ const routes = [
   {
     path: '/admin',
     element: (
-      <ProtectedRoute role={ROLES.ADMIN} redirectTo="/admin/login">
+      <ProtectedRoute allowedRoles={[ROLES.ADMIN]} redirectTo="/admin/login">
         <DashboardLayout />
       </ProtectedRoute>
     ),
@@ -99,10 +98,6 @@ const routes = [
         path: 'availability',
         element: <AvailabilityPage />,
       },
-      {
-        path: 'register',
-        element: <AdminRegisterPage />,
-      },
     ],
   },
 
@@ -113,9 +108,9 @@ const routes = [
   },
 ];
 
-function App() {
-  const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routes);
 
+function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />

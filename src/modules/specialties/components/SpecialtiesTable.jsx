@@ -1,6 +1,5 @@
 import DataTableCard from '../../shared/components/DataTableCard';
 
-// Columnas del mockup "Admin - Especialidad - Listado".
 const COLUMNS = [
   { key: 'name', label: 'NOMBRE DE LA ESPECIALIDAD' },
   { key: 'description', label: 'DESCRIPCIÓN' },

@@ -1,58 +1,13 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../auth/hook/useAuth';
-import {
-  cancelAppointment,
-  getPatientAppointments,
-} from '../../appointments/services/appointmentsApi';
-import { getApiError } from '../../shared/api/apiError';
+import { usePatientAppointments } from '../hooks/usePatientAppointments';
+import Button from '../../shared/components/Button';
 import PageHeader from '../../shared/components/PageHeader';
 import PatientAppointmentCard from '../components/PatientAppointmentCard';
 
 function AppointmentsPage() {
-  const { dni } = useAuth();
   const navigate = useNavigate();
-  const [appointments, setAppointments] = useState([]);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState(null);
-
-  // GET /api/appointments/patient?dni= → solo turnos activos (BOOKED) del paciente autenticado.
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await getPatientAppointments(dni);
-
-      setAppointments(data);
-    } catch (requestError) {
-      setError(getApiError(requestError).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (dni) load();
-    else setLoading(false);
-  }, [dni]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const remove = async (id) => {
-    if (!window.confirm('¿Cancelar este turno?')) return;
-
-    setError('');
-    setMessage('');
-    setCancellingId(id);
-    try {
-      await cancelAppointment(id);
-      setMessage('El turno fue cancelado y el horario quedó disponible.');
-      await load();
-    } catch (requestError) {
-      setError(getApiError(requestError).message);
-    } finally {
-      setCancellingId(null);
-    }
-  };
+  const { appointments, error, message, loading, cancellingId, handleCancel } =
+    usePatientAppointments();
 
   return (
     <div>
@@ -62,13 +17,13 @@ function AppointmentsPage() {
           subtitle="Consulta y gestiona las citas médicas programadas."
           className="mb-0"
           actions={
-            <button
-              type="button"
+            <Button
+              variant="default"
+              className="text-xs font-semibold py-2.5"
               onClick={() => navigate('/')}
-              className="bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition"
             >
               + Solicitar Nuevo Turno
-            </button>
+            </Button>
           }
         />
       </div>
@@ -110,7 +65,7 @@ function AppointmentsPage() {
                 key={appointment.id}
                 appointment={appointment}
                 cancelling={cancellingId === appointment.id}
-                onCancel={remove}
+                onCancel={handleCancel}
               />
             ))}
           </div>

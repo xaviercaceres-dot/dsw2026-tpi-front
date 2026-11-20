@@ -2,7 +2,6 @@ import { createContext, useCallback, useMemo, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
 import { logout } from '../services/logout';
-import { registerAdmin as registerAdminRequest } from '../services/adminRegister';
 import { isKnownRole, ROLES } from '../helpers/roles';
 
 const AuthContext = createContext();
@@ -63,8 +62,6 @@ function AuthProvider({ children }) {
   );
 
   const signout = useCallback(async () => {
-    // Se revoca el token en el backend antes de borrar la sesión local.
-    // Si falla (token vencido o backend caído) igual se cierra la sesión en el navegador.
     if (sessionStorage.getItem('token')) {
       try {
         await logout();
@@ -123,7 +120,6 @@ function AuthProvider({ children }) {
       email: session?.email,
       signinAdmin,
       signinPatient,
-      registerAdmin: registerAdminRequest,
       signout,
     }),
     [session, signinAdmin, signinPatient, signout]

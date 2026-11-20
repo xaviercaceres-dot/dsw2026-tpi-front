@@ -1,6 +1,5 @@
 import { ShieldIcon } from './AuthIcons';
 
-// Plantilla (template) común de las pantallas de acceso: logo, tarjeta central y enlace inferior.
 function AuthLayout({ title, subtitle, banner, bottomLink, children }) {
   return (
     <main className="min-h-screen flex flex-col justify-center items-center bg-med-primary-950 px-4 py-8">
