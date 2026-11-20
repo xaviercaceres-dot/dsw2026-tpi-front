@@ -27,7 +27,6 @@ function getApiError(error, overrides = {}) {
   const code = payload?.errorCode || payload?.code;
   const details = Array.isArray(payload?.details) ? payload.details : [];
 
-  // Errores generados en el frontend (por ejemplo, validación del rol al iniciar sesión).
   if (!error.response && !error.request) {
     return {
       status,
@@ -37,7 +36,6 @@ function getApiError(error, overrides = {}) {
     };
   }
 
-  // Sin respuesta, o respuesta vacía del proxy de Vite cuando el backend no está levantado.
   const proxyWithoutBackend =
     status >= 500 && (payload === '' || payload === undefined);
 
@@ -59,7 +57,6 @@ function getApiError(error, overrides = {}) {
     defaultMessages[status] ||
     'Ocurrió un error inesperado.';
 
-  // En los errores de validación se muestran los motivos de cada campo informados por el backend.
   const issues = details
     .map((detail) => detail?.issue)
     .filter((issue) => typeof issue === 'string' && issue.length > 3);
