@@ -5,6 +5,7 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
+import { ROLES } from './modules/auth/helpers/roles';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
@@ -23,6 +24,7 @@ import OverviewPage from './modules/dashboard/pages/OverviewPage';
 import DoctorsPage from './modules/doctors/pages/DoctorsPage';
 import SpecialtiesPage from './modules/specialties/pages/SpecialtiesPage';
 import AppointmentsSearchPage from './modules/appointments/pages/AppointmentsSearchPage';
+import AvailabilityPage from './modules/availability/pages/AvailabilityPage';
 
 const routes = [
   // Rutas públicas
@@ -39,7 +41,7 @@ const routes = [
   {
     path: '/',
     element: (
-      <ProtectedRoute redirectTo="/login">
+      <ProtectedRoute allowedRoles={[ROLES.PATIENT]} redirectTo="/login">
         <PatientLayout />
       </ProtectedRoute>
     ),
@@ -59,7 +61,7 @@ const routes = [
   {
     path: '/admin',
     element: (
-      <ProtectedRoute redirectTo="/admin/login">
+      <ProtectedRoute allowedRoles={[ROLES.ADMIN]} redirectTo="/admin/login">
         <DashboardLayout />
       </ProtectedRoute>
     ),
@@ -92,6 +94,10 @@ const routes = [
         path: 'doctors',
         element: <DoctorsPage />,
       },
+      {
+        path: 'availability',
+        element: <AvailabilityPage />,
+      },
     ],
   },
 
@@ -102,9 +108,9 @@ const routes = [
   },
 ];
 
-function App() {
-  const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routes);
 
+function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />

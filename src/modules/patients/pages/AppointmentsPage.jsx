@@ -1,89 +1,75 @@
-import Card from '../../shared/components/Card';
+import { useNavigate } from 'react-router-dom';
+import { usePatientAppointments } from '../hooks/usePatientAppointments';
 import Button from '../../shared/components/Button';
+import PageHeader from '../../shared/components/PageHeader';
+import PatientAppointmentCard from '../components/PatientAppointmentCard';
 
 function AppointmentsPage() {
-  const sampleAppointments = [
-    {
-      id: 1,
-      doctor: 'Dra. María González',
-      specialty: 'Cardiología',
-      date: '2026-10-28',
-      time: '10:30 hs',
-      status: 'Confirmado',
-    },
-    {
-      id: 2,
-      doctor: 'Dr. Lucas Fernández',
-      specialty: 'Traumatología',
-      date: '2026-11-05',
-      time: '15:00 hs',
-      status: 'Pendiente',
-    },
-  ];
+  const navigate = useNavigate();
+  const { appointments, error, message, loading, cancellingId, handleCancel } =
+    usePatientAppointments();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-med-text-main">
-            Mis Turnos Médicos
-          </h1>
-          <p className="text-sm text-med-text-sub mt-1">
-            Consulta y gestiona las citas médicas programadas.
-          </p>
-        </div>
-        <Button onClick={() => alert('Función de nuevo turno próximamente')}>
-          + Solicitar Nuevo Turno
-        </Button>
+    <div>
+      <div className="max-w-5xl mx-auto pt-8 px-4 sm:px-6">
+        <PageHeader
+          title="Mis Turnos Médicos"
+          subtitle="Consulta y gestiona las citas médicas programadas."
+          className="mb-0"
+          actions={
+            <Button
+              variant="default"
+              className="text-xs font-semibold py-2.5"
+              onClick={() => navigate('/')}
+            >
+              + Solicitar Nuevo Turno
+            </Button>
+          }
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {sampleAppointments.map((appt) => (
-          <Card
-            key={appt.id}
-            className="flex flex-col justify-between gap-4 p-6"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-med-primary-100 text-med-primary-700">
-                  {appt.specialty}
-                </span>
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                    appt.status === 'Confirmado'
-                      ? 'bg-med-active-bg text-med-active-text'
-                      : 'bg-med-leave-bg text-med-leave-text'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {appt.status}
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-med-primary-900">
-                {appt.doctor}
-              </h3>
-              <p className="text-sm text-med-text-sub mt-2">
-                Fecha:{' '}
-                <strong className="text-med-text-main font-semibold">
-                  {appt.date}
-                </strong>{' '}
-                a las{' '}
-                <strong className="text-med-text-main font-semibold">
-                  {appt.time}
-                </strong>
-              </p>
+      {(error || message) && (
+        <div className="max-w-5xl mx-auto mt-4 px-4 sm:px-6">
+          {error && (
+            <div
+              role="alert"
+              className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600"
+            >
+              {error}
             </div>
-            <div className="flex gap-2 pt-3 border-t border-med-border">
-              <Button
-                variant="outline"
-                className="w-full text-xs"
-                onClick={() => alert(`Cancelando turno ${appt.id}`)}
-              >
-                Cancelar Turno
-              </Button>
+          )}
+          {message && (
+            <div
+              role="status"
+              className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700 font-medium"
+            >
+              {message}
             </div>
-          </Card>
-        ))}
+          )}
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6">
+        {loading ? (
+          <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
+            Cargando turnos...
+          </div>
+        ) : appointments.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
+            No tenés turnos reservados.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {appointments.map((appointment) => (
+              <PatientAppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                cancelling={cancellingId === appointment.id}
+                onCancel={handleCancel}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

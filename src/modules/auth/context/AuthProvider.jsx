@@ -1,76 +1,132 @@
-import { createContext, useState } from 'react';
-import { login } from '../services/login';
+import { createContext, useCallback, useMemo, useState } from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
+import { logout } from '../services/logout';
+import { isKnownRole, ROLES } from '../helpers/roles';
 
 const AuthContext = createContext();
+const SESSION_KEYS = ['token', 'role', 'dni', 'email'];
+
+function clearStoredSession() {
+  SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
+}
+
+function readSession() {
+  const token = sessionStorage.getItem('token');
+  const role = sessionStorage.getItem('role');
+
+  if (!token) return null;
+
+  // Una sesión con un rol desconocido (por ejemplo, guardada por una versión anterior) se descarta.
+  if (!isKnownRole(role)) {
+    clearStoredSession();
+
+    return null;
+  }
+
+  const dni = sessionStorage.getItem('dni');
+
+  return {
+    token,
+    role,
+    dni: dni ? Number(dni) : null,
+    email: sessionStorage.getItem('email'),
+  };
+}
+
+function createRoleError(message) {
+  const error = new Error(message);
+
+  error.isRoleError = true;
+
+  return error;
+}
 
 function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem('token');
+  const [session, setSession] = useState(readSession);
 
-    return Boolean(token);
-  });
+  const setAuthSession = useCallback(
+    ({ token, role, dni = null, email = null }) => {
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('role', role);
 
-  const singout = () => {
-    localStorage.clear();
-    setIsAuthenticated(false);
-  };
+      if (dni === null) sessionStorage.removeItem('dni');
+      else sessionStorage.setItem('dni', String(dni));
 
-  const setAuthSession = (token) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
-  };
+      if (email === null) sessionStorage.removeItem('email');
+      else sessionStorage.setItem('email', email);
 
-  const singin = async (username, password) => {
-    const { data, error } = await login(username, password);
+      setSession({ token, role, dni, email });
+    },
+    []
+  );
 
-    if (error) {
-      return { error };
+  const signout = useCallback(async () => {
+    if (sessionStorage.getItem('token')) {
+      try {
+        await logout();
+      } catch {
+        // Sin acción: la sesión local se elimina igualmente.
+      }
     }
 
-    setAuthSession(data);
+    clearStoredSession();
+    setSession(null);
+  }, []);
 
-    return { error: null };
-  };
+  const signinAdmin = useCallback(
+    async (email, password) => {
+      const { data } = await loginAdmin(email, password);
 
-  const singinAdmin = async (username, password) => {
-    const { data, error } = await loginAdmin(username, password);
+      if (data.role !== ROLES.ADMIN) {
+        throw createRoleError('La cuenta no tiene permisos administrativos.');
+      }
 
-    if (error) {
-      return { error };
-    }
+      setAuthSession({ token: data.token, role: data.role, email });
 
-    setAuthSession(data);
+      return data;
+    },
+    [setAuthSession]
+  );
 
-    return { error: null };
-  };
+  const signinPatient = useCallback(
+    async (email, dni) => {
+      const { data } = await loginPatient(email, dni);
 
-  const singinPatient = async (username, password) => {
-    const { data, error } = await loginPatient(username, password);
+      if (data.role !== ROLES.PATIENT) {
+        throw createRoleError(
+          'La cuenta ingresada no corresponde a un paciente.'
+        );
+      }
 
-    if (error) {
-      return { error };
-    }
+      setAuthSession({
+        token: data.token,
+        role: data.role,
+        dni: Number(dni),
+        email,
+      });
 
-    setAuthSession(data);
+      return data;
+    },
+    [setAuthSession]
+  );
 
-    return { error: null };
-  };
+  const contextValue = useMemo(
+    () => ({
+      session,
+      isAuthenticated: Boolean(session),
+      role: session?.role,
+      dni: session?.dni,
+      email: session?.email,
+      signinAdmin,
+      signinPatient,
+      signout,
+    }),
+    [session, signinAdmin, signinPatient, signout]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        singin,
-        singinAdmin,
-        singinPatient,
-        singout,
-        setAuthSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 

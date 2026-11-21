@@ -2,37 +2,79 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
 
-function PatientLayout() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
-  const { singout } = useAuth();
+// Nombre visible a partir del email (el login del paciente solo devuelve token y rol).
+function getDisplayName(email, dni) {
+  const localPart = String(email || '').split('@')[0];
+  const words = localPart
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 
-  const handleLogout = () => {
-    singout();
+  if (words.length > 0) return words.join(' ');
+
+  return dni ? `Paciente ${dni}` : 'Paciente';
+}
+
+function getInitials(name) {
+  const parts = name.split(' ').filter(Boolean);
+  const initials =
+    parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+
+  return initials.toUpperCase();
+}
+
+function PatientLayout() {
+  const navigate = useNavigate();
+  const { signout, dni, email } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const displayName = getDisplayName(email, dni);
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    await signout();
     navigate('/login');
   };
 
   const getNavLinkClass = ({ isActive }) =>
-    `px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
-      isActive
-        ? 'bg-med-primary-900 text-white'
-        : 'text-med-text-sub hover:bg-med-primary-50 hover:text-med-primary-900'
-    }`;
+    isActive
+      ? 'bg-[#133B5C] text-white font-semibold text-xs px-4 py-2 rounded-lg transition'
+      : 'text-slate-600 hover:text-[#133B5C] font-medium text-xs px-4 py-2 rounded-lg transition';
+
+  const navLinks = (
+    <>
+      <NavLink
+        to="/"
+        end
+        className={getNavLinkClass}
+        onClick={() => setMenuOpen(false)}
+      >
+        Reservar Turno
+      </NavLink>
+      <NavLink
+        to="/appointments"
+        className={getNavLinkClass}
+        onClick={() => setMenuOpen(false)}
+      >
+        Mis Turnos
+      </NavLink>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-med-bg flex flex-col">
-      {/* Header Responsivo */}
-      <header className="bg-white shadow-xs border-b border-med-border sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          {/* Logo y Enlaces Desktop */}
-          <div className="flex items-center gap-6 sm:gap-8">
-            <NavLink to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div className="bg-[#F4F7F9] min-h-screen flex flex-col">
+      {/* Navbar Superior del Paciente */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          {/* Izquierda */}
+          <div className="flex items-center gap-8 min-w-0">
+            <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#133B5C] text-white flex items-center justify-center">
                 <svg
                   className="w-4 h-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -42,33 +84,23 @@ function PatientLayout() {
                   />
                 </svg>
               </div>
-              <span className="text-lg font-bold text-med-primary-900 tracking-tight">
+              <span className="font-bold text-[#133B5C] text-base">
                 Portal Salud
               </span>
             </NavLink>
 
-            {/* Enlaces de Navegación Desktop */}
-            <nav className="hidden md:flex items-center gap-2">
-              <NavLink to="/" end className={getNavLinkClass}>
-                Reservar Turno
-              </NavLink>
-              <NavLink to="/appointments" className={getNavLinkClass}>
-                Mis Turnos
-              </NavLink>
-            </nav>
+            <nav className="hidden md:flex items-center gap-2">{navLinks}</nav>
           </div>
 
-          {/* Acciones Derecha Desktop / Mobile Avatar */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Iconos sutiles como en el mock */}
-            <button
-              type="button"
+          {/* Derecha */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span
+              className="hidden md:inline-flex text-slate-400"
               title="Notificaciones"
-              onClick={() => alert('No tienes notificaciones pendientes')}
-              className="hidden sm:flex p-2 rounded-lg text-med-text-muted hover:text-med-primary-900 hover:bg-gray-50 transition"
+              aria-hidden="true"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -80,36 +112,44 @@ function PatientLayout() {
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                 />
               </svg>
-            </button>
+            </span>
 
-            {/* Avatar Paciente */}
-            <div className="flex items-center gap-2.5 pl-2 sm:border-l sm:border-med-border">
-              <div className="w-8 h-8 rounded-full bg-med-primary-100 text-med-primary-900 font-bold text-xs flex items-center justify-center border border-med-primary-200">
-                JD
+            <div className="hidden md:block h-5 w-px bg-slate-200" />
+
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-8 h-8 rounded-full bg-[#DDF0FF] text-[#133B5C] font-bold text-xs flex items-center justify-center"
+                title={email || undefined}
+              >
+                {getInitials(displayName)}
               </div>
-              <span className="hidden sm:inline-block text-xs font-semibold text-med-text-main">
-                Johnathan Doe
+              <span className="hidden md:inline-block text-xs font-semibold text-slate-700">
+                {displayName}
               </span>
             </div>
 
             <button
+              type="button"
               onClick={handleLogout}
-              className="hidden sm:inline-flex text-xs font-semibold text-med-text-sub hover:text-red-600 px-2.5 py-1.5 rounded-lg border border-med-border hover:bg-red-50/40 transition"
+              className="hidden md:inline-block border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-md transition"
             >
               Salir
             </button>
 
-            {/* Botón hamburguesa móvil */}
+            {/* Menú hamburguesa (móvil) */}
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 rounded-lg border border-med-border text-med-text-sub hover:bg-gray-50"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Abrir menú de navegación"
+              aria-expanded={menuOpen}
+              className="md:hidden p-1.5 rounded-lg border border-slate-200 text-slate-600"
             >
               <svg
                 className="w-5 h-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -122,53 +162,22 @@ function PatientLayout() {
           </div>
         </div>
 
-        {/* Desplegable móvil */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-med-border px-4 py-3 bg-white space-y-2">
-            <NavLink
-              to="/"
-              end
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-med-primary-900 text-white'
-                    : 'text-med-text-sub hover:bg-med-primary-50'
-                }`
-              }
+        {menuOpen && (
+          <nav className="md:hidden border-t border-slate-100 px-4 py-3 flex flex-col gap-1">
+            {navLinks}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-left text-slate-600 hover:text-red-600 font-medium text-xs px-4 py-2 rounded-lg transition"
             >
-              Reservar Turno
-            </NavLink>
-            <NavLink
-              to="/appointments"
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-med-primary-900 text-white'
-                    : 'text-med-text-sub hover:bg-med-primary-50'
-                }`
-              }
-            >
-              Mis Turnos
-            </NavLink>
-            <div className="pt-2 border-t border-med-border-subtle flex items-center justify-between">
-              <span className="text-xs font-medium text-med-text-sub">
-                Paciente: Johnathan Doe
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-xs font-bold text-red-600"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
+              Salir
+            </button>
+          </nav>
         )}
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 w-full">
         <Outlet />
       </main>
     </div>
