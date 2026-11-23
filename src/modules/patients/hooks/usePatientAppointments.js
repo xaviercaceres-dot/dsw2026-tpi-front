@@ -13,6 +13,7 @@ export function usePatientAppointments() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [pendingCancel, setPendingCancel] = useState(null);
 
   const load = useCallback(async () => {
     if (!dni) {
@@ -39,21 +40,28 @@ export function usePatientAppointments() {
     load();
   }, [load]);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm('¿Cancelar este turno?')) return;
-
+  const requestCancel = (appointment) => {
     setError('');
     setMessage('');
-    setCancellingId(id);
+    setPendingCancel(appointment);
+  };
+
+  const dismissCancel = () => setPendingCancel(null);
+
+  const confirmCancel = async () => {
+    if (!pendingCancel) return;
+
+    setCancellingId(pendingCancel.id);
 
     try {
-      await cancelAppointment(id);
+      await cancelAppointment(pendingCancel.id);
       setMessage('El turno fue cancelado y el horario quedó disponible.');
       await load();
     } catch (requestError) {
       setError(getApiError(requestError).message);
     } finally {
       setCancellingId(null);
+      setPendingCancel(null);
     }
   };
 
@@ -63,6 +71,9 @@ export function usePatientAppointments() {
     message,
     loading,
     cancellingId,
-    handleCancel,
+    pendingCancel,
+    requestCancel,
+    dismissCancel,
+    confirmCancel,
   };
 }

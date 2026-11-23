@@ -22,6 +22,9 @@ El archivo `.env.development` define a dónde se envían las llamadas a la API:
 | `VITE_BACKEND_URL`          | `/`                     | `baseURL` de Axios (las rutas empiezan con `/api/...`).        |
 | `VITE_BACKEND_PROXY_TARGET` | `http://localhost:5278` | Destino del proxy de Vite para todo lo que empieza con `/api`. |
 
+`.env.example` documenta las mismas variables (con comentarios) por si se necesita un
+`.env.development.local` con otros valores.
+
 Como el navegador llama al mismo origen de Vite y el proxy reenvía las solicitudes al backend,
 no hace falta agregar el puerto de Vite (5173) a la lista de CORS del backend.
 
@@ -30,8 +33,10 @@ no hace falta agregar el puerto de Vite (5173) a la lista de CORS del backend.
 ```bash
 npm install      # instala las dependencias
 npm run dev      # servidor de desarrollo en http://localhost:5173
-npm run lint     # ESLint + Prettier
-npm run build    # genera la carpeta dist para producción
+npm run lint          # ESLint (incluye las reglas de Prettier)
+npm run format:check  # npx prettier --check .
+npm test              # pruebas unitarias con Vitest (reglas de negocio y helpers)
+npm run build         # genera la carpeta dist para producción
 ```
 
 ## Acceso
@@ -41,14 +46,20 @@ npm run build    # genera la carpeta dist para producción
 | Paciente      | `/login`           | Email + DNI (7 u 8 dígitos). Si es el primer ingreso, el backend registra al paciente.       |
 | Administrador | `/admin/login`     | Email + contraseña del administrador inicial (`Admin:Email` / `Admin:Password` del backend). |
 
-El token JWT y el rol se guardan en `sessionStorage`. Al cerrar sesión se llama a
-`POST /api/auth/logout`, que revoca el token en el backend.
+En `sessionStorage` solo se guarda el token JWT (y el email, para mostrarlo). El rol, el DNI del
+paciente y el vencimiento se leen de los claims del token; si el token venció o tiene un rol
+desconocido la sesión se descarta, y al llegar el vencimiento se cierra sola. Al cerrar sesión se
+llama a `POST /api/auth/logout`, que revoca el token en el backend.
+
+Las rutas privadas se protegen con `ProtectedRoute allowedRoles={[...]}`: sin sesión redirige al
+login correspondiente y con otro rol redirige al inicio de ese rol.
 
 ## Funcionalidades
 
 **Administrador** (`/admin/...`): tablero con métricas, listado/alta/edición/baja lógica de
 médicos y especialidades, configuración de disponibilidad horaria (genera turnos de 30 minutos
-hasta fin de mes), turnos del día y búsqueda combinada por especialidad, médico, DNI y fecha.
+hasta fin de mes), turnos del día y búsqueda combinada de citas (`/admin/appointments`) por especialidad, médico, DNI y
+fecha.
 
 **Paciente** (`/` y `/appointments`): reserva de turnos (especialidad → médico → horario →
 motivo → confirmación), listado de turnos activos y cancelación.
@@ -61,23 +72,26 @@ src/
 ├── main.jsx
 ├── index.css / elements.css
 └── modules/
-    ├── auth/               # login y registro de administrador, sesión, rutas privadas
+    ├── auth/               # logins, sesión y rutas privadas
     │   ├── components/     # ProtectedRoute, AuthLayout, LoginField, íconos
     │   ├── context/        # AuthProvider (Context API)
-    │   ├── helpers/        # roles y reglas de validación
+    │   ├── helpers/        # roles, lectura del JWT y reglas de validación
     │   ├── hook/           # useAuth
-    │   ├── pages/          # AdminLoginPage, AdminRegisterPage
+    │   ├── pages/          # AdminLoginPage, PatientLoginPage
     │   └── services/       # llamadas a /api/auth
     ├── dashboard/          # layout del administrador y tablero
     ├── doctors/            # médicos
     ├── specialties/        # especialidades
     ├── availability/       # disponibilidad horaria
     ├── appointments/       # búsqueda de citas (administrador) y servicios de citas
-    ├── patients/           # login, layout, reserva (PatientHome) y turnos del paciente
-    └── shared/             # cliente Axios, manejo de errores, componentes y utilidades comunes
+    ├── patients/           # portal del paciente: layout, reserva (PatientHome) y sus turnos
+    └── shared/             # cliente Axios, errores, componentes base (Button, IconButton,
+                            # Input, Card, Modal, ConfirmDialog, DataTableCard...), hooks
+                            # genéricos (useCrudList, useDebouncedValue) y utilidades
 ```
 
-Cada módulo separa páginas (`pages`), componentes de presentación (`components`) y acceso a la
-API (`services`); los componentes no construyen URLs ni usan Axios directamente.
+Cada módulo separa páginas (`pages`), componentes de presentación (`components`), custom hooks
+con la lógica y el estado (`hook`/`hooks`) y acceso a la API (`services`); las vistas no
+construyen URLs ni usan Axios directamente. Los formularios se validan con React Hook Form.
 
 El detalle de los endpoints consumidos está en [API_ENDPOINT_MAPPING.md](API_ENDPOINT_MAPPING.md).

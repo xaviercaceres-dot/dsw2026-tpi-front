@@ -2,7 +2,7 @@ function FormField({
   label,
   icon,
   error,
-  labelClassName = 'text-xs font-bold text-[#0F2942] mb-2 block',
+  labelClassName = 'text-xs font-bold text-med-text-main mb-2 block',
   className = '',
   children,
 }) {

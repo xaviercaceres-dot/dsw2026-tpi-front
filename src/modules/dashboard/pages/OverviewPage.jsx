@@ -33,15 +33,14 @@ function OverviewPage() {
         actions={
           <>
             <Button
-              variant="default"
-              className="py-2.5 text-xs font-semibold"
+              className="text-xs"
               onClick={() => navigate('/admin/doctors?action=create')}
             >
               + Agregar Nuevo Doctor
             </Button>
             <Button
               variant="secondary"
-              className="py-2.5 text-xs font-semibold"
+              className="text-xs"
               onClick={() => navigate('/admin/specialties?action=create')}
             >
               + Agregar Nueva Especialidad
@@ -75,8 +74,6 @@ function OverviewPage() {
         />
 
         <MetricCard
-          badgeText="Estable"
-          badgeVariant="neutral"
           label="ESPECIALIDADES ACTIVAS"
           value={metrics.specialtiesCount}
           loading={loading}
@@ -137,7 +134,7 @@ function OverviewPage() {
             value={search}
             placeholder="Buscar por nombre..."
             className="w-full sm:w-64"
-            inputClassName="bg-[#F4F7F9] py-1.5"
+            inputClassName="bg-med-bg py-1.5"
             onChange={handleSearchChange}
           />
         }
@@ -155,7 +152,7 @@ function OverviewPage() {
             <td className="px-6 py-4">
               <div className="flex items-center gap-3">
                 <DoctorAvatar variant="circle" size="sm" showStatus={false} />
-                <span className="font-bold text-[#133B5C] text-xs">
+                <span className="font-bold text-med-primary-900 text-xs">
                   {doctor.name}
                 </span>
               </div>
@@ -166,6 +163,7 @@ function OverviewPage() {
             <td className="px-6 py-4 text-right">
               <Button
                 variant="link"
+                size="none"
                 className="text-xs"
                 onClick={() => navigate('/admin/doctors')}
               >

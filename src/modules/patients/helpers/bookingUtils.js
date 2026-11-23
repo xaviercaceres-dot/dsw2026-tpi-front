@@ -95,6 +95,11 @@ export function validateBookingReason(reason) {
   return '';
 }
 
+// Regla de React Hook Form para el motivo (mismos límites que AppointmentService del backend).
+export const REASON_RULES = {
+  validate: (value) => validateBookingReason(String(value ?? '')) || true,
+};
+
 export function formatRangeHeaderLabel(daysWindow) {
   const firstDay = daysWindow[0];
   const lastDay = daysWindow[daysWindow.length - 1];

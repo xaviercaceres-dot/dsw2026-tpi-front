@@ -3,8 +3,8 @@
 @theme {
   /* Azules Institucionales Médicos */
   --color-med-primary-950: #062644;
-  --color-med-primary-900: #0b385e;
-  --color-med-primary-800: #092f4f;
+  --color-med-primary-900: #133b5c;
+  --color-med-primary-800: #0f2e49;
   --color-med-primary-700: #0f4c81;
   --color-med-primary-600: #0e5b8e;
   --color-med-primary-500: #1d70b8;
@@ -30,6 +30,7 @@
   --color-med-leave-text: #b45309;
   --color-med-danger-bg: #fee2e2;
   --color-med-danger-text: #dc2626;
+  --color-med-success: #52c47c;
 }
 
 @layer base {

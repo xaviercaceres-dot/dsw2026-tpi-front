@@ -1,123 +1,58 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getSpecialties } from '../../specialties/services/specialtiesApi';
-import { getDoctors } from '../../doctors/services/doctorsApi';
-import { getAvailableSlots } from '../../availability/services/availabilityApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { createAppointment } from '../../appointments/services/appointmentsApi';
 import useAuth from '../../auth/hook/useAuth';
 import { getApiError } from '../../shared/api/apiError';
 import {
   BOOKING_ERROR_MESSAGES,
-  DAYS_IN_WINDOW,
-  buildDaysWindow,
-  filterValidSlotsForDate,
   formatRangeHeaderLabel,
-  validateBookingReason,
+  REASON_RULES,
 } from '../helpers/bookingUtils';
+import { useBookingCatalog } from './useBookingCatalog';
+import { useWeeklySlots } from './useWeeklySlots';
 
 const matchesSpecialty = (doc, specId) =>
   String(doc.specialty?.id) === String(specId);
 
+// Reserva de turnos (CU01): compone el catálogo, la ventana de turnos y el formulario del motivo.
 export function usePatientBooking() {
   const { dni } = useAuth();
-  const [specialties, setSpecialties] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [specialtyId, setSpecialtyId] = useState('');
   const [doctorId, setDoctorId] = useState('');
-  const [windowOffset, setWindowOffset] = useState(0);
-  const [slotsByDate, setSlotsByDate] = useState({});
   const [selectedDateStr, setSelectedDateStr] = useState('');
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [reason, setReason] = useState('');
-  const [reasonError, setReasonError] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
 
-  const latestRequestId = useRef(0);
+  const { specialties, doctors, loaded } = useBookingCatalog(setError);
+  const {
+    daysWindow,
+    slotsByDate,
+    loadingSlots,
+    canGoBack,
+    startWeek,
+    shiftWeek,
+    reloadWeek,
+  } = useWeeklySlots(setError);
 
-  const daysWindow = useMemo(
-    () => buildDaysWindow(windowOffset),
-    [windowOffset]
-  );
+  // Formulario del motivo (React Hook Form). Vive en el hook para conservar el texto
+  // aunque el paciente cambie de horario o el turno elegido ya no esté disponible.
+  const {
+    register,
+    handleSubmit,
+    reset: resetReasonForm,
+    clearErrors,
+    formState: { errors },
+  } = useForm({ defaultValues: { reason: '' }, mode: 'onTouched' });
 
-  const invalidatePendingSlots = useCallback(() => {
-    latestRequestId.current += 1;
-    setLoadingSlots(false);
-  }, []);
-
-  const loadWeekSlots = useCallback(async (targetDoctorId, startOffset) => {
-    if (!targetDoctorId) return;
-
-    const requestId = ++latestRequestId.current;
-
-    setLoadingSlots(true);
-
-    try {
-      const targetDays = buildDaysWindow(startOffset);
-      const responses = await Promise.all(
-        targetDays.map((dayMeta) =>
-          getAvailableSlots(targetDoctorId, dayMeta.dateStr)
-        )
-      );
-
-      if (requestId !== latestRequestId.current) return;
-
-      const nextMap = {};
-
-      targetDays.forEach((dayMeta, idx) => {
-        nextMap[dayMeta.dateStr] = filterValidSlotsForDate(
-          responses[idx],
-          dayMeta.dateStr
-        );
-      });
-
-      setSlotsByDate(nextMap);
-    } catch (requestError) {
-      if (requestId !== latestRequestId.current) return;
-
-      setSlotsByDate({});
-      setError(getApiError(requestError).message);
-    } finally {
-      if (requestId === latestRequestId.current) {
-        setLoadingSlots(false);
-      }
-    }
-  }, []);
-
+  // Al cargar el catálogo se preselecciona el primer médico y se muestran sus turnos.
   useEffect(() => {
-    let isMounted = true;
+    if (doctors.length === 0) return;
 
-    Promise.all([
-      getSpecialties({ pageSize: 100, pageIndex: 1 }),
-      getDoctors({ pageSize: 100, pageIndex: 1 }),
-    ])
-      .then(([specialtyData, doctorData]) => {
-        if (!isMounted) return;
-
-        const docItems = doctorData.data;
-
-        setSpecialties(specialtyData.data);
-        setDoctors(docItems);
-
-        if (docItems.length > 0) {
-          setDoctorId(docItems[0].id);
-          loadWeekSlots(docItems[0].id, 0);
-        }
-      })
-      .catch((requestError) => {
-        if (isMounted) setError(getApiError(requestError).message);
-      })
-      .finally(() => {
-        if (isMounted) setCatalogLoaded(true);
-      });
-
-    return () => {
-      isMounted = false;
-      latestRequestId.current += 1;
-    };
-  }, [loadWeekSlots]);
+    setDoctorId(doctors[0].id);
+    startWeek(doctors[0].id);
+  }, [doctors, startWeek]);
 
   const filteredDoctors = useMemo(
     () =>
@@ -135,10 +70,10 @@ export function usePatientBooking() {
   const resetSelection = useCallback(() => {
     setSelectedSlot(null);
     setSelectedDateStr('');
-    setReasonError('');
+    clearErrors();
     setMessage('');
     setError('');
-  }, []);
+  }, [clearErrors]);
 
   const handleSpecialtyChange = (nextSpecId) => {
     const matchingDocs = nextSpecId
@@ -149,21 +84,13 @@ export function usePatientBooking() {
     setSpecialtyId(nextSpecId);
     resetSelection();
     setDoctorId(nextDocId);
-    setSlotsByDate({});
-    setWindowOffset(0);
-
-    if (nextDocId) loadWeekSlots(nextDocId, 0);
-    else invalidatePendingSlots();
+    startWeek(nextDocId);
   };
 
   const handleDoctorChange = (nextDocId) => {
     setDoctorId(nextDocId);
     resetSelection();
-    setSlotsByDate({});
-    setWindowOffset(0);
-
-    if (nextDocId) loadWeekSlots(nextDocId, 0);
-    else invalidatePendingSlots();
+    startWeek(nextDocId);
   };
 
   const handleSearch = () => {
@@ -175,16 +102,12 @@ export function usePatientBooking() {
       return;
     }
 
-    loadWeekSlots(doctorId, windowOffset);
+    reloadWeek(doctorId);
   };
 
   const handleShiftWeek = (direction) => {
-    const nextOffset = Math.max(0, windowOffset + direction * DAYS_IN_WINDOW);
-
-    setWindowOffset(nextOffset);
     resetSelection();
-
-    if (doctorId) loadWeekSlots(doctorId, nextOffset);
+    shiftWeek(doctorId, direction);
   };
 
   const handleSelectSlot = (dateStr, item) => {
@@ -194,24 +117,10 @@ export function usePatientBooking() {
     setError('');
   };
 
-  const handleReasonChange = (value) => {
-    setReason(value);
-    setReasonError('');
-  };
-
-  const handleConfirmBooking = async () => {
+  const confirmBooking = async ({ reason }) => {
     if (!selectedSlot || !doctorId) return;
 
-    const validationError = validateBookingReason(reason);
-
-    if (validationError) {
-      setReasonError(validationError);
-
-      return;
-    }
-
     setBooking(true);
-    setReasonError('');
     setError('');
     setMessage('');
 
@@ -225,34 +134,36 @@ export function usePatientBooking() {
       setMessage('Turno reservado correctamente.');
       setSelectedSlot(null);
       setSelectedDateStr('');
-      setReason('');
-      await loadWeekSlots(doctorId, windowOffset);
+      resetReasonForm();
+      await reloadWeek(doctorId);
     } catch (requestError) {
       const apiError = getApiError(requestError, BOOKING_ERROR_MESSAGES);
 
       setError(apiError.message);
 
+      // 409: el horario lo tomó otro paciente; se recargan los turnos libres.
       if (apiError.status === 409) {
         setSelectedSlot(null);
         setSelectedDateStr('');
-        await loadWeekSlots(doctorId, windowOffset);
+        await reloadWeek(doctorId);
       }
     } finally {
       setBooking(false);
     }
   };
 
-  const rangeHeaderLabel = formatRangeHeaderLabel(daysWindow);
   const selectedDayMeta =
     daysWindow.find((d) => d.dateStr === selectedDateStr) || daysWindow[0];
 
-  const noDoctorsMessage = !catalogLoaded
-    ? ''
-    : doctors.length === 0
-      ? 'Todavía no hay profesionales disponibles para reservar turnos.'
-      : filteredDoctors.length === 0
-        ? 'No hay profesionales para la especialidad seleccionada.'
-        : '';
+  let noDoctorsMessage = '';
+
+  if (loaded && doctors.length === 0) {
+    noDoctorsMessage =
+      'Todavía no hay profesionales disponibles para reservar turnos.';
+  } else if (loaded && filteredDoctors.length === 0) {
+    noDoctorsMessage =
+      'No hay profesionales para la especialidad seleccionada.';
+  }
 
   return {
     specialties,
@@ -264,10 +175,10 @@ export function usePatientBooking() {
     slotsByDate,
     selectedSlot,
     selectedDayMeta,
-    rangeHeaderLabel,
-    canGoBack: windowOffset > 0,
-    reason,
-    reasonError,
+    rangeHeaderLabel: formatRangeHeaderLabel(daysWindow),
+    canGoBack,
+    reasonField: register('reason', REASON_RULES),
+    reasonError: errors.reason?.message,
     message,
     error,
     noDoctorsMessage,
@@ -278,7 +189,6 @@ export function usePatientBooking() {
     handleSearch,
     handleShiftWeek,
     handleSelectSlot,
-    handleReasonChange,
-    handleConfirmBooking,
+    handleConfirmBooking: handleSubmit(confirmBooking),
   };
 }

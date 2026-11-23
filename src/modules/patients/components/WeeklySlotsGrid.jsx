@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { formatTimeHHmm } from '../../shared/utils/dateUtils';
+import IconButton from '../../shared/components/IconButton';
+import Button from '../../shared/components/Button';
 
 const selectedSlotClass =
-  'w-full py-2 bg-[#52C47C] text-white border border-[#52C47C] rounded-lg text-xs font-bold shadow-sm transition';
+  'w-full py-2 bg-med-success text-white border border-med-success rounded-lg text-xs font-bold shadow-sm transition';
 const slotClass =
-  'w-full py-2 border border-slate-200 rounded-lg text-xs font-bold text-[#133B5C] hover:border-[#133B5C] transition';
+  'w-full py-2 border border-slate-200 rounded-lg text-xs font-bold text-med-primary-900 hover:border-med-primary-900 transition';
 
 // Flujo alternativo 4a del CU01: médico sin disponibilidad para un día.
 function NoAvailability() {
@@ -62,35 +64,33 @@ function WeeklySlotsGrid({
     <section className="bg-white rounded-xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
+          <IconButton
+            variant="outline"
             disabled={!canGoBack}
             onClick={() => onShiftWeek(-1)}
-            aria-label="Días anteriores"
-            className="w-7 h-7 border border-slate-200 rounded flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+            label="Días anteriores"
           >
             ‹
-          </button>
-          <span className="text-sm font-bold text-[#133B5C] text-center">
+          </IconButton>
+          <span className="text-sm font-bold text-med-primary-900 text-center">
             {rangeHeaderLabel}
           </span>
-          <button
-            type="button"
+          <IconButton
+            variant="outline"
             onClick={() => onShiftWeek(1)}
-            aria-label="Días siguientes"
-            className="w-7 h-7 border border-slate-200 rounded flex items-center justify-center text-slate-500 hover:bg-slate-50"
+            label="Días siguientes"
           >
             ›
-          </button>
+          </IconButton>
         </div>
 
         <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#133B5C]" />
+            <span className="w-2 h-2 rounded-full bg-med-primary-900" />
             <span>Disponible</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#52C47C]" />
+            <span className="w-2 h-2 rounded-full bg-med-success" />
             <span>Seleccionado</span>
           </span>
         </div>
@@ -100,13 +100,14 @@ function WeeklySlotsGrid({
       <div className="md:hidden pt-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-bold text-slate-700">Próximos Turnos</p>
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="none"
+            className="text-xs"
             onClick={() => onShiftWeek(1)}
-            className="text-xs font-semibold text-[#133B5C]"
           >
             Ver más ›
-          </button>
+          </Button>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
           {daysWindow.map((dayMeta) => {
@@ -121,8 +122,8 @@ function WeeklySlotsGrid({
                 aria-pressed={isActive}
                 className={`shrink-0 w-16 rounded-xl border py-2 flex flex-col items-center transition ${
                   isActive
-                    ? 'bg-[#133B5C] border-[#133B5C] text-white'
-                    : 'bg-white border-slate-200 text-[#133B5C]'
+                    ? 'bg-med-primary-900 border-med-primary-900 text-white'
+                    : 'bg-white border-slate-200 text-med-primary-900'
                 } ${count === 0 && !isActive ? 'opacity-50' : ''}`}
               >
                 <span className="text-[10px] font-bold uppercase">
@@ -174,7 +175,7 @@ function WeeklySlotsGrid({
                 <p className="text-[10px] font-bold text-slate-400 uppercase">
                   {dayMeta.dayAbbr}
                 </p>
-                <p className="text-lg font-extrabold text-[#133B5C]">
+                <p className="text-lg font-extrabold text-med-primary-900">
                   {dayMeta.dayNumber}
                 </p>
               </div>

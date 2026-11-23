@@ -1,5 +1,6 @@
 import { useSpecialties } from '../hook/useSpecialties';
 import Button from '../../shared/components/Button';
+import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import PageHeader from '../../shared/components/PageHeader';
 import SearchInput from '../../shared/components/SearchInput';
 import SpecialtyFormCard from '../components/SpecialtyFormCard';
@@ -7,36 +8,35 @@ import SpecialtiesTable from '../components/SpecialtiesTable';
 
 function SpecialtiesPage() {
   const {
-    isAdmin,
     name,
-    form,
-    fieldErrors,
+    formDefaults,
     isEditing,
     isCreating,
+    pendingDelete,
     error,
     message,
     loading,
     saving,
+    deleting,
     displayedSpecialties,
     pagination,
     openCreateForm,
     closeForm,
     handleEdit,
-    handleFormChange,
     handleSearchChange,
     handleSubmit,
-    handleDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
   } = useSpecialties();
 
-  if (isCreating && isAdmin) {
+  if (isCreating) {
     return (
       <SpecialtyFormCard
-        form={form}
+        defaultValues={formDefaults}
         error={error}
-        fieldErrors={fieldErrors}
         isEditing={isEditing}
         saving={saving}
-        onChange={handleFormChange}
         onSubmit={handleSubmit}
         onCancel={closeForm}
       />
@@ -56,15 +56,9 @@ function SpecialtiesPage() {
               onChange={handleSearchChange}
             />
 
-            {isAdmin && (
-              <Button
-                variant="default"
-                className="text-xs font-semibold"
-                onClick={openCreateForm}
-              >
-                + Nueva Especialidad
-              </Button>
-            )}
+            <Button className="text-xs" onClick={openCreateForm}>
+              + Nueva Especialidad
+            </Button>
           </>
         }
       />
@@ -89,10 +83,19 @@ function SpecialtiesPage() {
       <SpecialtiesTable
         specialties={displayedSpecialties}
         loading={loading}
-        isAdmin={isAdmin}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={requestDelete}
         pagination={pagination}
+      />
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Eliminar especialidad"
+        message={`¿Confirma la baja de ${pendingDelete?.name ?? 'esta especialidad'}? Dejará de aparecer en los listados.`}
+        confirmLabel="Eliminar"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </div>
   );

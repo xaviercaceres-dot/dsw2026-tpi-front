@@ -16,7 +16,7 @@ function DataTableCard({
       {(title || headerActions) && (
         <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           {title && (
-            <h2 className="text-sm font-bold text-[#133B5C]">{title}</h2>
+            <h2 className="text-sm font-bold text-med-primary-900">{title}</h2>
           )}
           {headerActions && <div>{headerActions}</div>}
         </div>
@@ -24,7 +24,7 @@ function DataTableCard({
 
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-[#F4F8FB] border-y border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <thead className="bg-med-bg border-y border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <tr>
               {columns.map((col) => (
                 <th

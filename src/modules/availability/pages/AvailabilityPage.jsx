@@ -16,8 +16,6 @@ function AvailabilityPage() {
     error,
     message,
     handleSelectDoctor,
-    handleToggleDay,
-    handleUpdateDayTime,
     handleSave,
   } = useAvailability();
 
@@ -32,7 +30,7 @@ function AvailabilityPage() {
       />
 
       <div>
-        <h1 className="text-xl font-bold text-[#0F2942] mt-2">
+        <h1 className="text-xl font-bold text-med-text-main mt-2">
           Gestionar Disponibilidad Horaria
         </h1>
         <p className="text-xs text-slate-500 mt-0.5">
@@ -55,8 +53,6 @@ function AvailabilityPage() {
           saving={saving}
           error={error}
           message={message}
-          onToggleDay={handleToggleDay}
-          onUpdateDayTime={handleUpdateDayTime}
           onSubmit={handleSave}
           onCancel={() => navigate('/admin/doctors')}
         />

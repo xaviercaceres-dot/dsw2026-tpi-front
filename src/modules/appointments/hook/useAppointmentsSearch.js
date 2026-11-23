@@ -6,6 +6,7 @@ import {
   searchAppointments,
 } from '../services/appointmentsApi';
 import { getApiError } from '../../shared/api/apiError';
+import { fetchAllPages, paginateItems } from '../../shared/api/pagination';
 import { getTodayIsoLocal } from '../../shared/utils/dateUtils';
 
 const PAGE_SIZE = 10;
@@ -19,31 +20,26 @@ function createInitialFilters() {
   };
 }
 
+// Filtro local por nombre o DNI parcial sobre los campos del DTO SearchItem del backend.
 function matchesLocalQuery(item, query) {
   if (!query) return true;
 
   const q = query.toLowerCase();
-  const dniStr = String(item.patient?.dni ?? item.patientDni ?? '');
-  const emailStr = String(item.patient?.email ?? '').toLowerCase();
-  const fullNameStr = String(
-    item.patient?.fullName ?? item.patientName ?? ''
-  ).toLowerCase();
-  const doctorNameStr = String(
-    item.doctor?.name ?? item.doctorName ?? ''
-  ).toLowerCase();
+  const dni = String(item.patient?.dni ?? '');
+  const patientName = String(item.patient?.fullName ?? '').toLowerCase();
+  const doctorName = String(item.doctor?.name ?? '').toLowerCase();
 
   return (
-    dniStr.includes(query) ||
-    emailStr.includes(q) ||
-    fullNameStr.includes(q) ||
-    doctorNameStr.includes(q)
+    dni.includes(query) || patientName.includes(q) || doctorName.includes(q)
   );
 }
 
 export function useAppointmentsSearch() {
   const [specialties, setSpecialties] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [filters, setFilters] = useState(createInitialFilters);
+  const [initialFilters] = useState(createInitialFilters);
+  // Últimos filtros aplicados: la paginación los reutiliza aunque el formulario se esté editando.
+  const appliedFilters = useRef(initialFilters);
   const [result, setResult] = useState({
     data: [],
     total: 0,
@@ -84,46 +80,39 @@ export function useAppointmentsSearch() {
     setLoading(true);
     setError('');
 
+    // Turnos del día si solo hay fecha; si no, búsqueda combinada (ambos endpoints del enunciado).
+    const onlyDate = hasDate && !hasSpecialty && !hasDoctor && !isValidDni;
+    const serverFilters = {
+      ...(hasSpecialty
+        ? { specialtyId: String(activeFilters.specialtyId).trim() }
+        : {}),
+      ...(hasDoctor ? { doctorId: String(activeFilters.doctorId).trim() } : {}),
+      ...(isValidDni ? { dni: Number(trimmedQuery) } : {}),
+      ...(hasDate ? { date: String(activeFilters.date).trim() } : {}),
+    };
+    const fetchPage = (pageParams) =>
+      onlyDate
+        ? getAppointmentsByDate({ date: serverFilters.date, ...pageParams })
+        : searchAppointments({ ...serverFilters, ...pageParams });
+
     try {
-      let response;
+      let page;
 
-      if (hasDate && !hasSpecialty && !hasDoctor && !isValidDni) {
-        response = await getAppointmentsByDate({
-          date: String(activeFilters.date).trim(),
-          pageSize: PAGE_SIZE,
-          pageIndex,
-        });
+      if (trimmedQuery && !isValidDni) {
+        // El backend no filtra por nombre: se traen todas las páginas, se filtra y se pagina acá.
+        const items = await fetchAllPages(fetchPage);
+        const matches = items.filter((item) =>
+          matchesLocalQuery(item, trimmedQuery)
+        );
+
+        page = paginateItems(matches, pageIndex, PAGE_SIZE);
       } else {
-        const params = {
-          pageSize: PAGE_SIZE,
-          pageIndex,
-          ...(hasSpecialty
-            ? { specialtyId: String(activeFilters.specialtyId).trim() }
-            : {}),
-          ...(hasDoctor
-            ? { doctorId: String(activeFilters.doctorId).trim() }
-            : {}),
-          ...(isValidDni ? { dni: Number(trimmedQuery) } : {}),
-          ...(hasDate ? { date: String(activeFilters.date).trim() } : {}),
-        };
-
-        response = await searchAppointments(params);
+        page = await fetchPage({ pageSize: PAGE_SIZE, pageIndex });
       }
 
       if (requestId !== latestRequestId.current) return;
 
-      const rawItems = response.data;
-      const isLocalFilter = Boolean(trimmedQuery && !isValidDni);
-      const filteredItems = isLocalFilter
-        ? rawItems.filter((item) => matchesLocalQuery(item, trimmedQuery))
-        : rawItems;
-
-      setResult({
-        data: filteredItems,
-        total: isLocalFilter ? filteredItems.length : response.total,
-        pageIndex: response.pageIndex,
-        pageSize: response.pageSize,
-      });
+      setResult(page);
     } catch (requestError) {
       if (requestId !== latestRequestId.current) return;
 
@@ -152,7 +141,7 @@ export function useAppointmentsSearch() {
         if (isMounted) setError(getApiError(requestError).message);
       });
 
-    executeSearch(createInitialFilters(), 1);
+    executeSearch(appliedFilters.current, 1);
 
     return () => {
       isMounted = false;
@@ -160,19 +149,18 @@ export function useAppointmentsSearch() {
     };
   }, [executeSearch]);
 
-  const handleSearch = (pageIndex = 1) => {
-    executeSearch(filters, pageIndex);
+  const handlePageChange = (pageIndex) => {
+    executeSearch(appliedFilters.current, pageIndex);
   };
 
-  const handleApply = () => {
-    executeSearch(filters, 1);
+  const handleApply = (values) => {
+    appliedFilters.current = values;
+    executeSearch(values, 1);
   };
 
   const handleClear = () => {
-    const resetFilters = createInitialFilters();
-
-    setFilters(resetFilters);
-    executeSearch(resetFilters, 1);
+    appliedFilters.current = initialFilters;
+    executeSearch(initialFilters, 1);
   };
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
@@ -180,8 +168,7 @@ export function useAppointmentsSearch() {
   return {
     specialties,
     doctors,
-    filters,
-    setFilters,
+    initialFilters,
     appointments: result.data,
     error,
     loading,
@@ -190,7 +177,7 @@ export function useAppointmentsSearch() {
       totalPages,
       totalItems: result.total,
       pageSize: result.pageSize,
-      onPageChange: handleSearch,
+      onPageChange: handlePageChange,
     },
     handleApply,
     handleClear,

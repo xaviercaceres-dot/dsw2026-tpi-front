@@ -105,7 +105,7 @@ function AdminLoginPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50"
+          className="mt-2 w-full text-sm"
         >
           <span>{isSubmitting ? 'Ingresando...' : 'Iniciar Sesión'}</span>
           {!isSubmitting && <span className="text-sm">→</span>}

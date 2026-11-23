@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import useAuth from '../../auth/hook/useAuth';
+import useAuth from '../hook/useAuth';
 import { getApiError } from '../../shared/api/apiError';
 import Button from '../../shared/components/Button';
-import AuthLayout from '../../auth/components/AuthLayout';
-import LoginField from '../../auth/components/LoginField';
-import { LockIcon, MailIcon } from '../../auth/components/AuthIcons';
-import { DNI_PATTERN, EMAIL_PATTERN } from '../../auth/helpers/validations';
-import { HOME_BY_ROLE, ROLES } from '../../auth/helpers/roles';
+import AuthLayout from '../components/AuthLayout';
+import LoginField from '../components/LoginField';
+import { LockIcon, MailIcon } from '../components/AuthIcons';
+import { DNI_PATTERN, EMAIL_PATTERN } from '../helpers/validations';
+import { HOME_BY_ROLE, ROLES } from '../helpers/roles';
 
 // Mensajes propios del login de pacientes (el backend autentica con email + DNI).
 const patientLoginMessages = {
@@ -99,7 +99,7 @@ function PatientLoginPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 w-full py-2.5 disabled:opacity-50"
+          className="mt-2 w-full text-sm"
         >
           {isSubmitting ? 'Ingresando...' : 'Ingresar Paciente'}
         </Button>

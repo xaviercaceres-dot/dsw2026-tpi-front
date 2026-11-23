@@ -1,22 +1,55 @@
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import PageHeader from '../../shared/components/PageHeader';
 import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
+import Button from '../../shared/components/Button';
 
-const inputBaseClass =
-  'w-full pl-9 pr-4 py-2.5 border rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#133B5C]';
-const borderClass = (hasError) =>
-  hasError ? 'border-red-400' : 'border-slate-200';
+const trimmedLength = (value) => String(value ?? '').trim().length;
+
+// Reglas de React Hook Form alineadas con las validaciones de DoctorService (backend).
+const RULES = {
+  name: {
+    validate: (value) =>
+      (trimmedLength(value) >= 3 && trimmedLength(value) <= 100) ||
+      'El nombre es obligatorio y debe tener entre 3 y 100 caracteres.',
+  },
+  licenseNumber: {
+    validate: {
+      required: (value) =>
+        trimmedLength(value) > 0 || 'El número de licencia es obligatorio.',
+      maxLength: (value) =>
+        trimmedLength(value) <= 50 ||
+        'El número de licencia no puede superar los 50 caracteres.',
+    },
+  },
+  specialtyId: { required: 'Seleccioná una especialidad.' },
+};
 
 function DoctorFormCard({
-  form,
+  defaultValues,
   specialties = [],
   error,
-  fieldErrors = {},
   isEditing = false,
   saving = false,
-  onChange,
   onSubmit,
   onCancel,
 }) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm({ defaultValues, mode: 'onTouched' });
+
+  // Las especialidades llegan de la API: al cargarse se vuelve a marcar la opción elegida.
+  useEffect(() => {
+    if (specialties.length > 0) {
+      setValue('specialtyId', getValues('specialtyId'));
+    }
+  }, [specialties, setValue, getValues]);
+
   return (
     <div>
       <PageHeader
@@ -29,9 +62,9 @@ function DoctorFormCard({
 
       <div className="max-w-3xl mt-4 bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="px-5 sm:px-8 py-5 border-b border-slate-100">
-          <h1 className="text-base font-bold text-[#133B5C] flex items-center gap-2.5">
+          <h1 className="text-base font-bold text-med-primary-900 flex items-center gap-2.5">
             <svg
-              className="w-5 h-5 text-[#133B5C]"
+              className="w-5 h-5 text-med-primary-900"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -54,7 +87,11 @@ function DoctorFormCard({
           </p>
         </div>
 
-        <form onSubmit={onSubmit} noValidate className="p-5 sm:p-8 space-y-6">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          className="p-5 sm:p-8 space-y-6"
+        >
           {error && (
             <div
               role="alert"
@@ -66,7 +103,7 @@ function DoctorFormCard({
 
           <FormField
             label="Nombre Completo del Doctor"
-            error={fieldErrors.name}
+            error={errors.name?.message}
             icon={
               <svg
                 className="w-4 h-4"
@@ -84,20 +121,20 @@ function DoctorFormCard({
               </svg>
             }
           >
-            <input
+            <Input
               aria-label="Nombre Completo del Doctor"
               maxLength={100}
-              value={form.name}
               placeholder="Ej: Dr. Alejandro Martínez"
-              onChange={(e) => onChange({ ...form, name: e.target.value })}
-              className={`${inputBaseClass} ${borderClass(fieldErrors.name)}`}
+              invalid={Boolean(errors.name)}
+              className="pl-9 pr-4 py-2.5"
+              {...register('name', RULES.name)}
             />
           </FormField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               label="Especialidad"
-              error={fieldErrors.specialtyId}
+              error={errors.specialtyId?.message}
               icon={
                 <svg
                   className="w-4 h-4"
@@ -115,13 +152,12 @@ function DoctorFormCard({
                 </svg>
               }
             >
-              <select
+              <Input
+                as="select"
                 aria-label="Especialidad"
-                value={form.specialtyId}
-                onChange={(e) =>
-                  onChange({ ...form, specialtyId: e.target.value })
-                }
-                className={`w-full pl-9 pr-8 py-2.5 border rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${borderClass(fieldErrors.specialtyId)}`}
+                invalid={Boolean(errors.specialtyId)}
+                className="pl-9 pr-8 py-2.5"
+                {...register('specialtyId', RULES.specialtyId)}
               >
                 <option value="">Seleccione especialidad</option>
                 {specialties.map((item) => (
@@ -129,12 +165,12 @@ function DoctorFormCard({
                     {item.name}
                   </option>
                 ))}
-              </select>
+              </Input>
             </FormField>
 
             <FormField
               label="Número de Licencia Médica"
-              error={fieldErrors.licenseNumber}
+              error={errors.licenseNumber?.message}
               icon={
                 <svg
                   className="w-4 h-4"
@@ -152,32 +188,22 @@ function DoctorFormCard({
                 </svg>
               }
             >
-              <input
+              <Input
                 aria-label="Número de Licencia Médica"
                 maxLength={50}
-                value={form.licenseNumber}
                 placeholder="ID-45920-X"
-                onChange={(e) =>
-                  onChange({ ...form, licenseNumber: e.target.value })
-                }
-                className={`${inputBaseClass} ${borderClass(fieldErrors.licenseNumber)}`}
+                invalid={Boolean(errors.licenseNumber)}
+                className="pl-9 pr-4 py-2.5"
+                {...register('licenseNumber', RULES.licenseNumber)}
               />
             </FormField>
           </div>
 
           <div className="border-t border-slate-100 pt-6 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-5 py-2.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
-            >
+            <Button variant="outline" className="text-xs" onClick={onCancel}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-[#133B5C] hover:bg-[#0F2E49] text-white px-5 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={saving} className="text-xs">
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -193,7 +219,7 @@ function DoctorFormCard({
                 />
               </svg>
               <span>{saving ? 'Guardando...' : 'Guardar Doctor'}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </div>

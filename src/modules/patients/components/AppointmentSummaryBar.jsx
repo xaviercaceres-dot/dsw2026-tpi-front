@@ -1,31 +1,37 @@
+import Button from '../../shared/components/Button';
+import Input from '../../shared/components/Input';
 import { formatTimeHHmm } from '../../shared/utils/dateUtils';
+import { REASON_MAX_LENGTH } from '../helpers/bookingUtils';
 
+// reasonField: props de register('reason') de React Hook Form (el formulario vive en usePatientBooking).
 function AppointmentSummaryBar({
   selectedSlot,
   selectedDayMeta,
-  reason,
+  reasonField,
   reasonError,
   loading = false,
-  onReasonChange,
   onConfirm,
 }) {
   if (!selectedSlot || !selectedDayMeta) return null;
 
   return (
-    <section className="bg-[#F0F7FC] rounded-xl border border-[#D0E5F5] p-5">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="border-l-4 border-[#133B5C] pl-4 w-full md:w-auto">
+    <section className="bg-med-primary-50 rounded-xl border border-med-primary-200 p-5">
+      <form
+        onSubmit={onConfirm}
+        noValidate
+        className="flex flex-col md:flex-row md:items-start justify-between gap-4"
+      >
+        <div className="border-l-4 border-med-primary-900 pl-4 w-full md:w-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
             RESUMEN DE SELECCIÓN
           </span>
-          <p className="text-sm font-extrabold text-[#133B5C] mt-0.5">
+          <p className="text-sm font-extrabold text-med-primary-900 mt-0.5">
             📅 {selectedDayMeta.fullDayName} {selectedDayMeta.dayNumber} de{' '}
             {selectedDayMeta.monthName} de {selectedDayMeta.year},{' '}
-            {formatTimeHHmm(selectedSlot.startTime)} HS
+            {formatTimeHHmm(selectedSlot.startTime)} a{' '}
+            {formatTimeHHmm(selectedSlot.endTime)} HS
           </p>
-          <p className="text-[11px] text-slate-500">
-            Clínica San Rafael - Sede Central Consultorio 402 • Duración: 30 min
-          </p>
+          <p className="text-[11px] text-slate-500">Duración: 30 min</p>
         </div>
 
         <div className="w-full md:w-64">
@@ -35,28 +41,24 @@ function AppointmentSummaryBar({
           >
             Motivo de la consulta *
           </label>
-          <input
+          <Input
             id="appointment-reason"
-            type="text"
-            maxLength={300}
-            value={reason}
-            aria-invalid={Boolean(reasonError)}
-            onChange={(e) => onReasonChange(e.target.value)}
+            maxLength={REASON_MAX_LENGTH}
             placeholder="Ej. Control general"
-            className={`bg-white border rounded-lg px-3 py-2 text-xs w-full text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${
-              reasonError ? 'border-red-400' : 'border-slate-200'
-            }`}
+            invalid={Boolean(reasonError)}
+            className="px-3 py-2"
+            {...reasonField}
           />
           {reasonError && (
             <p className="text-[11px] text-red-500 mt-1">{reasonError}</p>
           )}
         </div>
 
-        <button
-          type="button"
+        <Button
+          type="submit"
+          size="lg"
           disabled={loading}
-          onClick={onConfirm}
-          className="bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold text-xs px-6 py-3 rounded-lg flex items-center justify-center gap-2 shrink-0 w-full md:w-auto md:mt-5 transition disabled:opacity-50"
+          className="text-xs shrink-0 w-full md:w-auto md:mt-5"
         >
           <span>{loading ? 'Confirmando...' : 'Confirmar Turno'}</span>
           <svg
@@ -73,8 +75,8 @@ function AppointmentSummaryBar({
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-        </button>
-      </div>
+        </Button>
+      </form>
     </section>
   );
 }

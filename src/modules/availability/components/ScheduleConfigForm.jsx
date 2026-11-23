@@ -1,7 +1,19 @@
-import { DAYS_OF_WEEK } from '../helpers/scheduleUtils';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import Button from '../../shared/components/Button';
+import { DAYS_OF_WEEK, getDayRangeError } from '../helpers/scheduleUtils';
 import ScheduleDayRow from './ScheduleDayRow';
 
-const FALLBACK_DAY = { enabled: false, startTime: '09:00', endTime: '17:00' };
+// Regla de React Hook Form para la hora de salida de cada día habilitado.
+const endTimeRules = (day) => ({
+  validate: (endTime, values) => {
+    const dayValues = values[day.key];
+
+    if (!dayValues?.enabled) return true;
+
+    return getDayRangeError(day.label, dayValues.startTime, endTime) || true;
+  },
+});
 
 function ScheduleConfigForm({
   schedule,
@@ -9,24 +21,48 @@ function ScheduleConfigForm({
   saving,
   error,
   message,
-  onToggleDay,
-  onUpdateDayTime,
   onSubmit,
   onCancel,
 }) {
-  const handleFormSubmit = (event) => {
-    event.preventDefault();
-    onSubmit();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm({ defaultValues: schedule });
+
+  // Al cambiar de médico (o después de guardar) se cargan sus horarios en el formulario.
+  useEffect(() => {
+    reset(schedule);
+  }, [schedule, reset]);
+
+  const onValid = (values) => {
+    const hasEnabledDay = DAYS_OF_WEEK.some((day) => values[day.key]?.enabled);
+
+    if (!hasEnabledDay) {
+      setError('root', {
+        message: 'Debe habilitar al menos un día de disponibilidad.',
+      });
+
+      return;
+    }
+
+    onSubmit(values);
   };
+
+  const formError = errors.root?.message || error;
 
   return (
     <div className="lg:col-span-8">
       <form
-        onSubmit={handleFormSubmit}
+        onSubmit={handleSubmit(onValid)}
+        noValidate
         className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden"
       >
         <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-          <h2 className="text-sm font-bold text-[#133B5C]">
+          <h2 className="text-sm font-bold text-med-primary-900">
             Configuración de Horarios
           </h2>
           <div className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -48,7 +84,7 @@ function ScheduleConfigForm({
           </div>
         </div>
 
-        <div className="hidden sm:grid bg-[#DCEEFB] px-6 py-2.5 grid-cols-12 text-[11px] font-bold text-[#133B5C] uppercase">
+        <div className="hidden sm:grid bg-med-primary-100 px-6 py-2.5 grid-cols-12 text-[11px] font-bold text-med-primary-900 uppercase">
           <div className="col-span-3">DÍA</div>
           <div className="col-span-3">ESTADO</div>
           <div className="col-span-3">ENTRADA</div>
@@ -65,20 +101,21 @@ function ScheduleConfigForm({
               <ScheduleDayRow
                 key={day.key}
                 day={day}
-                dayData={schedule[day.key] || FALLBACK_DAY}
-                onToggle={onToggleDay}
-                onTimeChange={onUpdateDayTime}
+                enabled={Boolean(watch(`${day.key}.enabled`))}
+                register={register}
+                rules={endTimeRules(day)}
+                error={errors[day.key]?.endTime?.message}
               />
             ))
           )}
         </div>
 
-        {error && (
+        {formError && (
           <div
             role="alert"
             className="mx-4 sm:mx-6 my-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600"
           >
-            {error}
+            {formError}
           </div>
         )}
         {message && (
@@ -91,17 +128,13 @@ function ScheduleConfigForm({
         )}
 
         <div className="px-4 sm:px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border border-[#133B5C]/40 text-[#133B5C] px-5 py-2 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
-          >
+          <Button variant="secondary" className="text-xs" onClick={onCancel}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={saving}
-            className="bg-[#133B5C] hover:bg-[#0F2E49] text-white px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+            disabled={saving || loading}
+            className="text-xs"
           >
             <svg
               className="w-4 h-4"
@@ -118,7 +151,7 @@ function ScheduleConfigForm({
               />
             </svg>
             <span>{saving ? 'Guardando...' : 'Guardar Disponibilidad'}</span>
-          </button>
+          </Button>
         </div>
       </form>
     </div>

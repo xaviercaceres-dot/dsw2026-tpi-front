@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
+import IconButton from '../../shared/components/IconButton';
 
 function DashboardLayout() {
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signout } = useAuth();
+  const { signout, email } = useAuth();
 
   const handleLogout = async () => {
     await signout();
@@ -77,11 +78,9 @@ function DashboardLayout() {
       ),
     },
     {
-      to: '/admin/patients',
-      label: 'Búsqueda de Pacientes',
-      isActiveMatch: (pathname) =>
-        pathname.startsWith('/admin/patients') ||
-        pathname.startsWith('/admin/patient-search'),
+      to: '/admin/appointments',
+      label: 'Búsqueda de Citas',
+      isActiveMatch: (pathname) => pathname.startsWith('/admin/appointments'),
       icon: (
         <svg
           className="w-5 h-5 shrink-0"
@@ -101,7 +100,7 @@ function DashboardLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F7F9] flex">
+    <div className="min-h-screen bg-med-bg flex">
       {/* Sidebar izquierdo fijo */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col justify-between min-h-screen transition-transform duration-200 sm:translate-x-0 ${
@@ -111,7 +110,7 @@ function DashboardLayout() {
         <div className="flex flex-col flex-1">
           {/* 1. Cabecera del Sidebar */}
           <div className="p-6 border-b border-slate-100">
-            <h2 className="text-lg font-bold text-[#133B5C] leading-tight">
+            <h2 className="text-lg font-bold text-med-primary-900 leading-tight">
               Admin Portal
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -131,7 +130,7 @@ function DashboardLayout() {
                   onClick={() => setOpenMobileMenu(false)}
                   className={
                     active
-                      ? 'bg-[#EBF3F9] text-[#133B5C] font-bold border-r-4 border-[#133B5C] rounded-l-lg py-2.5 px-4 flex items-center gap-3 text-sm transition'
+                      ? 'bg-med-primary-50 text-med-primary-900 font-bold border-r-4 border-med-primary-900 rounded-l-lg py-2.5 px-4 flex items-center gap-3 text-sm transition'
                       : 'text-slate-600 hover:bg-slate-50 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 text-sm transition'
                   }
                 >
@@ -170,16 +169,14 @@ function DashboardLayout() {
 
           {/* Bloque de Perfil Admin */}
           <div className="flex items-center gap-3 px-2 pt-1">
-            <div className="w-9 h-9 rounded-full bg-[#DDF0FF] text-[#133B5C] font-bold text-xs flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-med-primary-100 text-med-primary-900 font-bold text-xs flex items-center justify-center shrink-0">
               AD
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-slate-800 truncate">
-                Admin User
+                Administrador
               </p>
-              <p className="text-[11px] text-slate-400 truncate">
-                Super Administrator
-              </p>
+              <p className="text-[11px] text-slate-400 truncate">{email}</p>
             </div>
           </div>
         </div>
@@ -198,15 +195,16 @@ function DashboardLayout() {
         {/* Topbar móvil */}
         <header className="sm:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-[#133B5C]">Admin Portal</h2>
+            <h2 className="text-sm font-bold text-med-primary-900">
+              Admin Portal
+            </h2>
             <p className="text-[10px] text-slate-400">Healthcare Management</p>
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="menu"
             onClick={() => setOpenMobileMenu(!openMobileMenu)}
-            aria-label="Abrir menú de navegación"
+            label="Abrir menú de navegación"
             aria-expanded={openMobileMenu}
-            className="p-1.5 rounded-lg border border-slate-200 text-slate-600"
           >
             <svg
               className="w-5 h-5"
@@ -221,7 +219,7 @@ function DashboardLayout() {
                 d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
-          </button>
+          </IconButton>
         </header>
 
         {/* Contenido de Rutas Hijas */}

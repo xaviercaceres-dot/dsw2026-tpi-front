@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
+import Button from '../../shared/components/Button';
+import IconButton from '../../shared/components/IconButton';
 
 // Nombre visible a partir del email (el login del paciente solo devuelve token y rol).
 function getDisplayName(email, dni) {
@@ -37,8 +39,8 @@ function PatientLayout() {
 
   const getNavLinkClass = ({ isActive }) =>
     isActive
-      ? 'bg-[#133B5C] text-white font-semibold text-xs px-4 py-2 rounded-lg transition'
-      : 'text-slate-600 hover:text-[#133B5C] font-medium text-xs px-4 py-2 rounded-lg transition';
+      ? 'bg-med-primary-900 text-white font-semibold text-xs px-4 py-2 rounded-lg transition'
+      : 'text-slate-600 hover:text-med-primary-900 font-medium text-xs px-4 py-2 rounded-lg transition';
 
   const navLinks = (
     <>
@@ -61,14 +63,14 @@ function PatientLayout() {
   );
 
   return (
-    <div className="bg-[#F4F7F9] min-h-screen flex flex-col">
+    <div className="bg-med-bg min-h-screen flex flex-col">
       {/* Navbar Superior del Paciente */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           {/* Izquierda */}
           <div className="flex items-center gap-8 min-w-0">
             <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-[#133B5C] text-white flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-med-primary-900 text-white flex items-center justify-center">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -84,7 +86,7 @@ function PatientLayout() {
                   />
                 </svg>
               </div>
-              <span className="font-bold text-[#133B5C] text-base">
+              <span className="font-bold text-med-primary-900 text-base">
                 Portal Salud
               </span>
             </NavLink>
@@ -118,7 +120,7 @@ function PatientLayout() {
 
             <div className="flex items-center gap-2.5">
               <div
-                className="w-8 h-8 rounded-full bg-[#DDF0FF] text-[#133B5C] font-bold text-xs flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-med-primary-100 text-med-primary-900 font-bold text-xs flex items-center justify-center"
                 title={email || undefined}
               >
                 {getInitials(displayName)}
@@ -128,21 +130,24 @@ function PatientLayout() {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="hidden md:inline-block border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-md transition"
-            >
-              Salir
-            </button>
+            <div className="hidden md:block">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={handleLogout}
+              >
+                Salir
+              </Button>
+            </div>
 
             {/* Menú hamburguesa (móvil) */}
-            <button
-              type="button"
+            <IconButton
+              variant="menu"
+              className="md:hidden"
               onClick={() => setMenuOpen((open) => !open)}
-              aria-label="Abrir menú de navegación"
+              label="Abrir menú de navegación"
               aria-expanded={menuOpen}
-              className="md:hidden p-1.5 rounded-lg border border-slate-200 text-slate-600"
             >
               <svg
                 className="w-5 h-5"
@@ -158,7 +163,7 @@ function PatientLayout() {
                   d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
-            </button>
+            </IconButton>
           </div>
         </div>
 

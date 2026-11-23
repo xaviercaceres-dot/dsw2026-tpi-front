@@ -9,9 +9,9 @@ import { ROLES } from './modules/auth/helpers/roles';
 
 // Auth Module
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
+import PatientLoginPage from './modules/auth/pages/PatientLoginPage';
 
 // Patients Module
-import PatientLoginPage from './modules/patients/pages/PatientLoginPage';
 import PatientLayout from './modules/patients/components/PatientLayout';
 import PatientHome from './modules/patients/pages/PatientHome';
 import AppointmentsPage from './modules/patients/pages/AppointmentsPage';
@@ -75,16 +75,17 @@ const routes = [
         element: <OverviewPage />,
       },
       {
-        path: 'patients',
+        path: 'appointments',
         element: <AppointmentsSearchPage />,
+      },
+      // Rutas anteriores de la búsqueda de citas (se conservan como redirección).
+      {
+        path: 'patients',
+        element: <Navigate to="/admin/appointments" replace />,
       },
       {
         path: 'patient-search',
-        element: <AppointmentsSearchPage />,
-      },
-      {
-        path: 'appointments',
-        element: <Navigate to="/admin/patients" replace />,
+        element: <Navigate to="/admin/appointments" replace />,
       },
       {
         path: 'specialties',

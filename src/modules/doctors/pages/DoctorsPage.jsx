@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useDoctors } from '../hook/useDoctors';
 import Button from '../../shared/components/Button';
+import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import PageHeader from '../../shared/components/PageHeader';
 import SearchInput from '../../shared/components/SearchInput';
 import DoctorFormCard from '../components/DoctorFormCard';
@@ -9,38 +10,37 @@ import DoctorsTable from '../components/DoctorsTable';
 function DoctorsPage() {
   const navigate = useNavigate();
   const {
-    isAdmin,
     specialties,
     name,
-    form,
-    fieldErrors,
+    formDefaults,
     isEditing,
     isCreating,
+    pendingDelete,
     error,
     message,
     loading,
     saving,
+    deleting,
     displayedDoctors,
     pagination,
     openCreateForm,
     closeForm,
     handleEdit,
-    handleFormChange,
     handleSearchChange,
     handleSubmit,
-    handleDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
   } = useDoctors();
 
-  if (isCreating && isAdmin) {
+  if (isCreating) {
     return (
       <DoctorFormCard
-        form={form}
+        defaultValues={formDefaults}
         specialties={specialties}
         error={error}
-        fieldErrors={fieldErrors}
         isEditing={isEditing}
         saving={saving}
-        onChange={handleFormChange}
         onSubmit={handleSubmit}
         onCancel={closeForm}
       />
@@ -60,39 +60,30 @@ function DoctorsPage() {
               onChange={handleSearchChange}
             />
 
-            {isAdmin && (
-              <>
-                <Button
-                  variant="default"
-                  className="text-xs font-semibold flex items-center gap-2"
-                  onClick={() => navigate('/admin/availability')}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>Agregar Disponibilidad Horaria</span>
-                </Button>
+            <Button
+              className="text-xs"
+              onClick={() => navigate('/admin/availability')}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>Agregar Disponibilidad Horaria</span>
+            </Button>
 
-                <Button
-                  variant="default"
-                  className="text-xs font-semibold"
-                  onClick={openCreateForm}
-                >
-                  + Nuevo Doctor
-                </Button>
-              </>
-            )}
+            <Button className="text-xs" onClick={openCreateForm}>
+              + Nuevo Doctor
+            </Button>
           </>
         }
       />
@@ -117,13 +108,22 @@ function DoctorsPage() {
       <DoctorsTable
         doctors={displayedDoctors}
         loading={loading}
-        isAdmin={isAdmin}
         onViewAvailability={(id) =>
           navigate(`/admin/availability?doctorId=${id}`)
         }
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={requestDelete}
         pagination={pagination}
+      />
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Eliminar médico"
+        message={`¿Confirma la baja de ${pendingDelete?.name ?? 'este médico'}? Dejará de aparecer en los listados.`}
+        confirmLabel="Eliminar"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </div>
   );

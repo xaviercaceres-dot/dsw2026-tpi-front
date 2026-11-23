@@ -1,5 +1,7 @@
+import Card from '../../shared/components/Card';
 import StatusBadge from '../../shared/components/StatusBadge';
 import { formatTimeHHmm } from '../../shared/utils/dateUtils';
+import Button from '../../shared/components/Button';
 
 const STATUS_MAP = {
   BOOKED: { status: 'BOOKED', label: 'Confirmado' },
@@ -9,17 +11,20 @@ const STATUS_MAP = {
 };
 
 function PatientAppointmentCard({ appointment, cancelling = false, onCancel }) {
-  const status = String(appointment.status || 'BOOKED').toUpperCase();
-  const badgeMeta = STATUS_MAP[status] || { status: 'INFO', label: status };
-  const specialtyName = appointment.speciality || 'Consulta Médica';
+  // Se muestran los datos tal como llegan del backend (AppointmentModel.Response), sin inventar valores.
+  const status = String(appointment.status ?? '').toUpperCase();
+  const badgeMeta = STATUS_MAP[status] || {
+    status: 'INFO',
+    label: status || '—',
+  };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
+    <Card className="p-6 flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-center mb-4">
           <StatusBadge
             status="SPECIALTY"
-            label={specialtyName}
+            label={appointment.speciality || '—'}
             className="text-xs"
           />
           <StatusBadge
@@ -29,8 +34,8 @@ function PatientAppointmentCard({ appointment, cancelling = false, onCancel }) {
           />
         </div>
 
-        <h2 className="text-lg font-bold text-[#133B5C]">
-          {appointment.doctorName || 'Profesional Médico'}
+        <h2 className="text-lg font-bold text-med-primary-900">
+          {appointment.doctorName || '—'}
         </h2>
         <p className="text-xs text-slate-500 mt-1">
           Fecha:{' '}
@@ -45,16 +50,16 @@ function PatientAppointmentCard({ appointment, cancelling = false, onCancel }) {
       <div>
         <div className="border-t border-slate-100 my-4" />
 
-        <button
-          type="button"
+        <Button
+          variant="dangerOutline"
+          className="w-full text-xs"
           disabled={status !== 'BOOKED' || cancelling}
-          onClick={() => onCancel(appointment.id)}
-          className="w-full py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition disabled:opacity-40"
+          onClick={() => onCancel(appointment)}
         >
           {cancelling ? 'Cancelando...' : 'Cancelar Turno'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 

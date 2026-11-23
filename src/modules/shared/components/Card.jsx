@@ -1,10 +1,14 @@
-function Card({ children, className = '' }) {
+// Contenedor base de las tarjetas; el padding y la etiqueta se definen al usarlo.
+function Card({ as = 'div', className = '', children, ...props }) {
+  const Component = as;
+
   return (
-    <div
-      className={`bg-med-card border border-med-border rounded-xl shadow-xs p-5 ${className}`}
+    <Component
+      {...props}
+      className={`bg-white rounded-xl border border-slate-200/80 shadow-sm ${className}`.trim()}
     >
       {children}
-    </div>
+    </Component>
   );
 }
 

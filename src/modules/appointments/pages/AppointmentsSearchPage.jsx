@@ -7,8 +7,7 @@ function AppointmentsSearchPage() {
   const {
     specialties,
     doctors,
-    filters,
-    setFilters,
+    initialFilters,
     appointments,
     error,
     loading,
@@ -26,10 +25,9 @@ function AppointmentsSearchPage() {
       />
 
       <AppointmentSearchFilters
-        filters={filters}
+        defaultValues={initialFilters}
         specialties={specialties}
         doctors={doctors}
-        onChange={setFilters}
         onApply={handleApply}
         onClear={handleClear}
       />

@@ -1,37 +1,47 @@
-import { createContext, useCallback, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { loginAdmin } from '../services/adminLogin';
 import { loginPatient } from '../services/patientLogin';
 import { logout } from '../services/logout';
 import { isKnownRole, ROLES } from '../helpers/roles';
+import { getTokenClaims, isTokenExpired } from '../helpers/jwt';
 
 const AuthContext = createContext();
-const SESSION_KEYS = ['token', 'role', 'dni', 'email'];
+// 'role' y 'dni' se limpian por si quedaron guardados por una versión anterior.
+const SESSION_KEYS = ['token', 'email', 'role', 'dni'];
 
 function clearStoredSession() {
   SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
 }
 
-function readSession() {
-  const token = sessionStorage.getItem('token');
-  const role = sessionStorage.getItem('role');
+// El rol, el DNI y el vencimiento salen del token emitido por el backend,
+// no de valores sueltos que cualquiera puede editar en sessionStorage.
+function buildSession(token, email = null) {
+  const claims = getTokenClaims(token);
 
-  if (!token) return null;
-
-  // Una sesión con un rol desconocido (por ejemplo, guardada por una versión anterior) se descarta.
-  if (!isKnownRole(role)) {
-    clearStoredSession();
-
+  if (!claims || !isKnownRole(claims.role) || isTokenExpired(claims)) {
     return null;
   }
 
-  const dni = sessionStorage.getItem('dni');
+  return { token, role: claims.role, dni: claims.dni, exp: claims.exp, email };
+}
 
-  return {
-    token,
-    role,
-    dni: dni ? Number(dni) : null,
-    email: sessionStorage.getItem('email'),
-  };
+function readSession() {
+  const token = sessionStorage.getItem('token');
+
+  if (!token) return null;
+
+  const session = buildSession(token, sessionStorage.getItem('email'));
+
+  // Token vencido, ilegible o con un rol desconocido: se descarta la sesión.
+  if (!session) clearStoredSession();
+
+  return session;
 }
 
 function createRoleError(message) {
@@ -45,21 +55,36 @@ function createRoleError(message) {
 function AuthProvider({ children }) {
   const [session, setSession] = useState(readSession);
 
-  const setAuthSession = useCallback(
-    ({ token, role, dni = null, email = null }) => {
-      sessionStorage.setItem('token', token);
-      sessionStorage.setItem('role', role);
+  const clearSession = useCallback(() => {
+    clearStoredSession();
+    setSession(null);
+  }, []);
 
-      if (dni === null) sessionStorage.removeItem('dni');
-      else sessionStorage.setItem('dni', String(dni));
+  // Al vencer el token se cierra la sesión local y el guardián redirige al login.
+  useEffect(() => {
+    if (!session) return undefined;
 
-      if (email === null) sessionStorage.removeItem('email');
-      else sessionStorage.setItem('email', email);
+    const timer = setTimeout(
+      clearSession,
+      Math.max(0, session.exp * 1000 - Date.now())
+    );
 
-      setSession({ token, role, dni, email });
-    },
-    []
-  );
+    return () => clearTimeout(timer);
+  }, [session, clearSession]);
+
+  // El rol se valida antes de guardar la sesión.
+  const startSession = useCallback((token, email, expectedRole, message) => {
+    const nextSession = buildSession(token, email);
+
+    if (!nextSession || nextSession.role !== expectedRole) {
+      throw createRoleError(message);
+    }
+
+    clearStoredSession();
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('email', email);
+    setSession(nextSession);
+  }, []);
 
   const signout = useCallback(async () => {
     if (sessionStorage.getItem('token')) {
@@ -70,54 +95,47 @@ function AuthProvider({ children }) {
       }
     }
 
-    clearStoredSession();
-    setSession(null);
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   const signinAdmin = useCallback(
     async (email, password) => {
       const { data } = await loginAdmin(email, password);
 
-      if (data.role !== ROLES.ADMIN) {
-        throw createRoleError('La cuenta no tiene permisos administrativos.');
-      }
-
-      setAuthSession({ token: data.token, role: data.role, email });
+      startSession(
+        data.token,
+        email,
+        ROLES.ADMIN,
+        'La cuenta no tiene permisos administrativos.'
+      );
 
       return data;
     },
-    [setAuthSession]
+    [startSession]
   );
 
   const signinPatient = useCallback(
     async (email, dni) => {
       const { data } = await loginPatient(email, dni);
 
-      if (data.role !== ROLES.PATIENT) {
-        throw createRoleError(
-          'La cuenta ingresada no corresponde a un paciente.'
-        );
-      }
-
-      setAuthSession({
-        token: data.token,
-        role: data.role,
-        dni: Number(dni),
+      startSession(
+        data.token,
         email,
-      });
+        ROLES.PATIENT,
+        'La cuenta ingresada no corresponde a un paciente.'
+      );
 
       return data;
     },
-    [setAuthSession]
+    [startSession]
   );
 
   const contextValue = useMemo(
     () => ({
-      session,
       isAuthenticated: Boolean(session),
-      role: session?.role,
-      dni: session?.dni,
-      email: session?.email,
+      role: session?.role ?? null,
+      dni: session?.dni ?? null,
+      email: session?.email ?? null,
       signinAdmin,
       signinPatient,
       signout,

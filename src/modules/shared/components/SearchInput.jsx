@@ -5,6 +5,7 @@ function SearchInput({
   className = 'w-60',
   inputClassName = 'bg-white',
   allowClear = false,
+  ...inputProps
 }) {
   return (
     <div className={`relative ${className}`.trim()}>
@@ -25,13 +26,14 @@ function SearchInput({
       </span>
       <input
         type="text"
+        aria-label={placeholder}
+        {...inputProps}
         value={value}
         placeholder={placeholder}
-        aria-label={placeholder}
         onChange={(e) => onChange && onChange(e.target.value)}
         className={`w-full border border-slate-200 rounded-lg pl-9 ${
           allowClear && value ? 'pr-7' : 'pr-4'
-        } py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${inputClassName}`.trim()}
+        } py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-med-primary-900 ${inputClassName}`.trim()}
       />
       {allowClear && value && (
         <button

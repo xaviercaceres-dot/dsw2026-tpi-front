@@ -1,4 +1,5 @@
 import Button from '../../shared/components/Button';
+import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
 
 function DoctorSearchBar({
@@ -11,8 +12,8 @@ function DoctorSearchBar({
   onSearch,
 }) {
   return (
-    <section className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
-      <h1 className="text-xl font-bold text-[#0F2942]">
+    <Card as="section" className="p-6">
+      <h1 className="text-xl font-bold text-med-text-main">
         Reservar Turno Médico
       </h1>
       <p className="text-xs text-slate-500 mt-0.5 mb-5">
@@ -29,7 +30,7 @@ function DoctorSearchBar({
             value={specialtyId}
             onChange={(e) => onSpecialtyChange(e.target.value)}
             aria-label="Seleccionar Especialidad"
-            className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+            className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-med-primary-900"
           >
             <option value="">Todas las especialidades</option>
             {specialties.map((item) => (
@@ -49,7 +50,7 @@ function DoctorSearchBar({
             value={doctorId}
             onChange={(e) => onDoctorChange(e.target.value)}
             aria-label="Seleccionar Doctor"
-            className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+            className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-med-primary-900"
           >
             <option value="">Seleccionar profesional</option>
             {doctors.map((item) => (
@@ -61,11 +62,7 @@ function DoctorSearchBar({
         </FormField>
 
         <div className="md:col-span-3">
-          <Button
-            variant="default"
-            onClick={onSearch}
-            className="w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2"
-          >
+          <Button onClick={onSearch} className="w-full text-xs">
             <svg
               className="w-4 h-4"
               fill="none"
@@ -84,7 +81,7 @@ function DoctorSearchBar({
           </Button>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 

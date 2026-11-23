@@ -86,25 +86,14 @@ export function buildScheduleFromData(items) {
   return initialSchedule;
 }
 
-export function validateSchedule(doctorId, schedule) {
-  if (!doctorId) return 'Seleccioná un profesional.';
-
-  const enabledDays = DAYS_OF_WEEK.filter((d) => schedule[d.key]?.enabled);
-
-  if (enabledDays.length === 0) {
-    return 'Debe habilitar al menos un día de disponibilidad.';
+// Regla de un día habilitado: entrada anterior a la salida y al menos un turno de 30 minutos.
+export function getDayRangeError(dayLabel, startTime, endTime) {
+  if (!startTime || !endTime || startTime >= endTime) {
+    return `En ${dayLabel}, la hora de entrada debe ser anterior a la hora de salida.`;
   }
 
-  for (const day of enabledDays) {
-    const { startTime, endTime } = schedule[day.key];
-
-    if (!startTime || !endTime || startTime >= endTime) {
-      return `En ${day.label}, la hora de entrada debe ser anterior a la hora de salida.`;
-    }
-
-    if (timeToMinutes(endTime) - timeToMinutes(startTime) < 30) {
-      return `En ${day.label}, la diferencia entre entrada y salida debe ser de al menos 30 minutos.`;
-    }
+  if (timeToMinutes(endTime) - timeToMinutes(startTime) < 30) {
+    return `En ${dayLabel}, la diferencia entre entrada y salida debe ser de al menos 30 minutos.`;
   }
 
   return '';

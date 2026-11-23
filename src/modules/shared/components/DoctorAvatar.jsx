@@ -14,7 +14,7 @@ function DoctorAvatar({
   variant = 'rounded',
   size = 'md',
   showStatus = true,
-  bgClass = 'bg-[#E6F2FA]',
+  bgClass = 'bg-med-primary-100',
   emoji = '👨‍⚕️',
   className = '',
 }) {
@@ -24,7 +24,7 @@ function DoctorAvatar({
 
   return (
     <div
-      className={`${sizeClass} ${shapeClass} ${bgClass} text-[#133B5C] flex items-center justify-center relative shrink-0 ${className}`.trim()}
+      className={`${sizeClass} ${shapeClass} ${bgClass} text-med-primary-900 flex items-center justify-center relative shrink-0 ${className}`.trim()}
     >
       <span>{emoji}</span>
       {showStatus && (

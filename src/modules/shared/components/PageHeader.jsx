@@ -10,7 +10,7 @@ function PageHeader({ title, subtitle, breadcrumb, actions, className = '' }) {
             {breadcrumb.parentLabel}
           </span>
           <span className="text-xs text-slate-400">›</span>
-          <span className="text-xs font-bold text-[#133B5C]">
+          <span className="text-xs font-bold text-med-primary-900">
             {breadcrumb.currentLabel}
           </span>
         </div>
@@ -20,7 +20,7 @@ function PageHeader({ title, subtitle, breadcrumb, actions, className = '' }) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div>
             {title && (
-              <h1 className="text-2xl font-bold text-[#0F2942]">{title}</h1>
+              <h1 className="text-2xl font-bold text-med-text-main">{title}</h1>
             )}
             {subtitle && (
               <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>

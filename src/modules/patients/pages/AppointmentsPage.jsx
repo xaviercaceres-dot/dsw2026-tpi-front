@@ -1,13 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { usePatientAppointments } from '../hooks/usePatientAppointments';
 import Button from '../../shared/components/Button';
+import Card from '../../shared/components/Card';
+import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import PageHeader from '../../shared/components/PageHeader';
 import PatientAppointmentCard from '../components/PatientAppointmentCard';
 
 function AppointmentsPage() {
   const navigate = useNavigate();
-  const { appointments, error, message, loading, cancellingId, handleCancel } =
-    usePatientAppointments();
+  const {
+    appointments,
+    error,
+    message,
+    loading,
+    cancellingId,
+    pendingCancel,
+    requestCancel,
+    dismissCancel,
+    confirmCancel,
+  } = usePatientAppointments();
 
   return (
     <div>
@@ -17,11 +28,7 @@ function AppointmentsPage() {
           subtitle="Consulta y gestiona las citas médicas programadas."
           className="mb-0"
           actions={
-            <Button
-              variant="default"
-              className="text-xs font-semibold py-2.5"
-              onClick={() => navigate('/')}
-            >
+            <Button className="text-xs" onClick={() => navigate('/')}>
               + Solicitar Nuevo Turno
             </Button>
           }
@@ -51,13 +58,13 @@ function AppointmentsPage() {
 
       <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6">
         {loading ? (
-          <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
+          <Card className="p-8 text-center text-xs text-slate-400">
             Cargando turnos...
-          </div>
+          </Card>
         ) : appointments.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
+          <Card className="p-8 text-center text-xs text-slate-400">
             No tenés turnos reservados.
-          </div>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {appointments.map((appointment) => (
@@ -65,12 +72,23 @@ function AppointmentsPage() {
                 key={appointment.id}
                 appointment={appointment}
                 cancelling={cancellingId === appointment.id}
-                onCancel={handleCancel}
+                onCancel={requestCancel}
               />
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingCancel)}
+        title="Cancelar turno"
+        message={`¿Confirma la cancelación del turno del ${pendingCancel?.date ?? ''} con ${pendingCancel?.doctorName ?? 'el profesional'}? El horario quedará disponible para otros pacientes.`}
+        confirmLabel="Cancelar turno"
+        cancelLabel="Volver"
+        loading={Boolean(cancellingId)}
+        onConfirm={confirmCancel}
+        onCancel={dismissCancel}
+      />
     </div>
   );
 }

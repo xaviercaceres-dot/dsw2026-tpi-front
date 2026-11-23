@@ -1,71 +1,82 @@
-import SearchInput from '../../shared/components/SearchInput';
+import { Controller, useForm } from 'react-hook-form';
+import Button from '../../shared/components/Button';
+import Card from '../../shared/components/Card';
 import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
+import SearchInput from '../../shared/components/SearchInput';
 import StatusBadge from '../../shared/components/StatusBadge';
 
+const labelClass = 'text-xs font-semibold text-slate-600 mb-1.5 block';
+const controlClass = 'px-3 py-2 text-slate-700';
+
+// El formulario de filtros maneja su propio estado (React Hook Form) y solo
+// entrega los valores al aplicar; no conoce el estado de la página.
 function AppointmentSearchFilters({
-  filters,
+  defaultValues,
   specialties = [],
   doctors = [],
-  onChange,
   onApply,
   onClear,
 }) {
-  const selectedSpecialtyObj = specialties.find(
-    (s) => String(s.id) === String(filters.specialtyId)
+  const { control, register, handleSubmit, reset, watch } = useForm({
+    defaultValues,
+  });
+  const values = watch();
+  const query = String(values.dni ?? '').trim();
+  const selectedSpecialty = specialties.find(
+    (s) => String(s.id) === String(values.specialtyId)
   );
-  const selectedDoctorObj = doctors.find(
-    (d) => String(d.id) === String(filters.doctorId)
+  const selectedDoctor = doctors.find(
+    (d) => String(d.id) === String(values.doctorId)
   );
+
+  const handleClear = () => {
+    reset(defaultValues);
+    onClear();
+  };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm mt-5">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
-        <h2 className="text-sm font-bold text-[#133B5C]">
-          Criterios de Búsqueda
-        </h2>
-        <div className="text-xs text-slate-400 flex items-center gap-1.5">
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>Última actualización: hace un momento</span>
-        </div>
-      </div>
+    <Card className="p-6 mt-5">
+      <h2 className="text-sm font-bold text-med-primary-900 mb-4">
+        Criterios de Búsqueda
+      </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <form
+        onSubmit={handleSubmit(onApply)}
+        noValidate
+        className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end"
+      >
         <FormField
           label="Nombre o DNI del Paciente"
-          labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
+          labelClassName={labelClass}
           className="md:col-span-3"
         >
-          <SearchInput
-            value={filters.dni}
-            placeholder="Nombre o DNI, ej.: 40123456"
-            className="w-full"
-            onChange={(value) => onChange({ ...filters, dni: value })}
+          <Controller
+            name="dni"
+            control={control}
+            render={({ field }) => (
+              <SearchInput
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="Nombre o DNI, ej.: 40123456"
+                className="w-full"
+              />
+            )}
           />
         </FormField>
 
         <FormField
           label="Especialidad"
-          labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
+          labelClassName={labelClass}
           className="md:col-span-3"
         >
-          <select
-            value={filters.specialtyId}
-            onChange={(e) =>
-              onChange({ ...filters, specialtyId: e.target.value })
-            }
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+          <Input
+            as="select"
+            aria-label="Especialidad"
+            className={controlClass}
+            {...register('specialtyId')}
           >
             <option value="">Todas las Especialidades</option>
             {specialties.map((item) => (
@@ -73,18 +84,19 @@ function AppointmentSearchFilters({
                 {item.name}
               </option>
             ))}
-          </select>
+          </Input>
         </FormField>
 
         <FormField
           label="Doctor"
-          labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
+          labelClassName={labelClass}
           className="md:col-span-2"
         >
-          <select
-            value={filters.doctorId}
-            onChange={(e) => onChange({ ...filters, doctorId: e.target.value })}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+          <Input
+            as="select"
+            aria-label="Doctor"
+            className={controlClass}
+            {...register('doctorId')}
           >
             <option value="">Todos los Doctores</option>
             {doctors.map((item) => (
@@ -92,33 +104,30 @@ function AppointmentSearchFilters({
                 {item.name}
               </option>
             ))}
-          </select>
+          </Input>
         </FormField>
 
         <FormField
           label="Fecha"
-          labelClassName="text-xs font-semibold text-slate-600 mb-1.5 block"
+          labelClassName={labelClass}
           className="md:col-span-2"
         >
-          <input
+          <Input
             type="date"
-            value={filters.date}
-            onChange={(e) => onChange({ ...filters, date: e.target.value })}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
+            aria-label="Fecha"
+            className={controlClass}
+            {...register('date')}
           />
         </FormField>
 
         <div className="md:col-span-2">
-          <button
-            type="button"
-            onClick={onApply}
-            className="w-full bg-[#133B5C] hover:bg-[#0F2E49] text-white font-semibold py-2.5 px-4 rounded-lg text-xs flex items-center justify-center gap-2 transition"
-          >
+          <Button type="submit" className="w-full text-xs">
             <svg
               className="w-3.5 h-3.5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -128,50 +137,47 @@ function AppointmentSearchFilters({
               />
             </svg>
             <span>Aplicar Filtros</span>
-          </button>
+          </Button>
         </div>
-      </div>
+      </form>
 
       <div className="flex flex-wrap items-center gap-2 mt-4">
-        {filters.dni.trim() && (
+        {query && (
           <StatusBadge
             status="SPECIALTY"
-            label={
-              /^\d+$/.test(filters.dni.trim())
-                ? `DNI: ${filters.dni.trim()}`
-                : `Paciente: ${filters.dni.trim()}`
-            }
+            label={/^\d+$/.test(query) ? `DNI: ${query}` : `Paciente: ${query}`}
           />
         )}
-        {selectedSpecialtyObj && (
+        {selectedSpecialty && (
           <StatusBadge
             status="SPECIALTY"
-            label={`Especialidad: ${selectedSpecialtyObj.name}`}
+            label={`Especialidad: ${selectedSpecialty.name}`}
           />
         )}
-        {selectedDoctorObj && (
+        {selectedDoctor && (
           <StatusBadge
             status="SPECIALTY"
-            label={`Doctor: ${selectedDoctorObj.name}`}
+            label={`Doctor: ${selectedDoctor.name}`}
           />
         )}
-        {filters.date && (
+        {values.date && (
           <StatusBadge
             status="ACTIVE_NO_DOT"
-            label={`Filtro Activo: Fecha ${filters.date}`}
+            label={`Filtro Activo: Fecha ${values.date}`}
           />
         )}
-        {(filters.dni || filters.specialtyId || filters.doctorId) && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="text-[11px] text-slate-400 hover:text-[#133B5C] underline ml-1"
+        {(query || values.specialtyId || values.doctorId) && (
+          <Button
+            variant="link"
+            size="none"
+            className="text-[11px] underline ml-1"
+            onClick={handleClear}
           >
             Restablecer filtros
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 

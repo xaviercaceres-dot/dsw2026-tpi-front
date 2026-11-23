@@ -1,7 +1,7 @@
 const BADGE_VARIANTS = {
-  success: 'bg-[#DCFCE7] text-[#15803D]',
+  success: 'bg-green-100 text-green-700',
   neutral: 'bg-slate-100 text-slate-600',
-  info: 'bg-[#E0F2FE] text-[#133B5C]',
+  info: 'bg-med-primary-100 text-med-primary-900',
 };
 
 function MetricCard({
@@ -17,7 +17,7 @@ function MetricCard({
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 flex flex-col justify-between">
       <div className="flex items-center justify-between">
-        <div className="w-10 h-10 rounded-lg bg-[#EBF4FA] text-[#133B5C] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-med-primary-50 text-med-primary-900 flex items-center justify-center">
           {icon}
         </div>
         {badgeText && (
@@ -32,7 +32,7 @@ function MetricCard({
         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-4 block">
           {label}
         </p>
-        <p className="text-3xl font-extrabold text-[#0F2942] mt-1">
+        <p className="text-3xl font-extrabold text-med-text-main mt-1">
           {loading ? '...' : value}
         </p>
       </div>

@@ -1,5 +1,5 @@
 {
-  "name": "unidad-5",
+  "name": "dsw2026-tpi-front",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
     "prettier": "^3.9.10",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
   }
 }

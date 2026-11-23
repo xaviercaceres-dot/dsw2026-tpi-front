@@ -5,6 +5,7 @@ import {
   formatDisplayDate,
   formatDisplayTime12h,
 } from '../../shared/utils/dateUtils';
+import Button from '../../shared/components/Button';
 
 const COLUMNS = [
   { key: 'date', label: 'FECHA' },
@@ -58,7 +59,7 @@ function AppointmentsTable({ appointments = [], loading = false, pagination }) {
             <Fragment key={item.appointmentsId}>
               <tr className="hover:bg-slate-50/70 transition-colors">
                 <td className="px-6 py-4">
-                  <p className="font-bold text-[#133B5C] text-xs">
+                  <p className="font-bold text-med-primary-900 text-xs">
                     {formatDisplayDate(date)}
                   </p>
                   <p className="text-[11px] text-slate-400">
@@ -68,7 +69,7 @@ function AppointmentsTable({ appointments = [], loading = false, pagination }) {
 
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#E6F2FA] text-[#133B5C] flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-med-primary-100 text-med-primary-900 flex items-center justify-center shrink-0">
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -85,7 +86,7 @@ function AppointmentsTable({ appointments = [], loading = false, pagination }) {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-bold text-[#133B5C] text-xs">
+                      <p className="font-bold text-med-primary-900 text-xs">
                         {specialtyName}
                       </p>
                       <p className="text-[11px] text-slate-400">{doctorName}</p>
@@ -111,21 +112,22 @@ function AppointmentsTable({ appointments = [], loading = false, pagination }) {
                 </td>
 
                 <td className="px-6 py-4 text-right">
-                  <button
-                    type="button"
+                  <Button
+                    variant="link"
+                    size="none"
+                    className="text-xs"
                     aria-expanded={isExpanded}
                     onClick={() =>
                       setExpandedId(isExpanded ? null : item.appointmentsId)
                     }
-                    className="text-[#133B5C] font-bold text-xs hover:underline"
                   >
                     {isExpanded ? 'Ocultar' : 'Ver Detalle'}
-                  </button>
+                  </Button>
                 </td>
               </tr>
 
               {isExpanded && (
-                <tr className="bg-[#F8FAFC]">
+                <tr className="bg-slate-50">
                   <td colSpan={COLUMNS.length} className="px-6 py-4">
                     <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                       <div>

@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  getDoctorAvailabilities,
-  getDoctors,
-} from '../../doctors/services/doctorsApi';
+import { getDoctors } from '../../doctors/services/doctorsApi';
 import {
   createAvailability,
+  getDoctorAvailabilities,
   updateAvailability,
 } from '../services/availabilityApi';
 import {
   buildAvailabilityPayload,
   buildScheduleFromData,
   createDefaultSchedule,
-  validateSchedule,
 } from '../helpers/scheduleUtils';
 import { getApiError } from '../../shared/api/apiError';
 
@@ -105,32 +102,13 @@ export function useAvailability() {
     fetchAvailabilities(selectedId);
   };
 
-  const handleToggleDay = (dayKey) => {
-    setSchedule((prev) => ({
-      ...prev,
-      [dayKey]: { ...prev[dayKey], enabled: !prev[dayKey].enabled },
-    }));
-    setMessage('');
-    setError('');
-  };
-
-  const handleUpdateDayTime = (dayKey, field, value) => {
-    setSchedule((prev) => ({
-      ...prev,
-      [dayKey]: { ...prev[dayKey], [field]: value },
-    }));
-    setMessage('');
-    setError('');
-  };
-
-  const handleSave = async () => {
+  // Recibe los horarios ya validados por React Hook Form (ScheduleConfigForm).
+  const handleSave = async (values) => {
     setError('');
     setMessage('');
 
-    const validationError = validateSchedule(doctorId, schedule);
-
-    if (validationError) {
-      setError(validationError);
+    if (!doctorId) {
+      setError('Seleccioná un profesional.');
 
       return;
     }
@@ -138,7 +116,7 @@ export function useAvailability() {
     setSaving(true);
 
     try {
-      const payload = buildAvailabilityPayload(doctorId, schedule);
+      const payload = buildAvailabilityPayload(doctorId, values);
 
       if (hasCurrentAvailability) await updateAvailability(payload);
       else await createAvailability(payload);
@@ -169,8 +147,6 @@ export function useAvailability() {
     error,
     message,
     handleSelectDoctor,
-    handleToggleDay,
-    handleUpdateDayTime,
     handleSave,
   };
 }

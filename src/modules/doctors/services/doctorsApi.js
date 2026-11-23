@@ -48,10 +48,3 @@ export async function deleteDoctor(id) {
 
   return response.data;
 }
-
-// GET /api/doctors/{id}/availabilities → disponibilidad del mes en curso [{ id, day, startTime, endTime }].
-export async function getDoctorAvailabilities(id) {
-  const response = await instance.get(`/api/doctors/${id}/availabilities`);
-
-  return Array.isArray(response.data) ? response.data : [];
-}

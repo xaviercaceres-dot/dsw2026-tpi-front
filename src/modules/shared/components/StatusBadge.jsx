@@ -1,41 +1,41 @@
 const STATUS_CONFIG = {
   ACTIVE: {
-    classes: 'bg-[#DCFCE7] text-[#15803D]',
+    classes: 'bg-green-100 text-green-700',
     defaultLabel: 'Active',
     dot: true,
   },
   ACTIVO: {
-    classes: 'bg-[#DCFCE7] text-[#15803D]',
+    classes: 'bg-green-100 text-green-700',
     defaultLabel: 'Activo',
     dot: true,
   },
   ACTIVE_NO_DOT: {
-    classes: 'bg-[#DCFCE7] text-[#15803D]',
+    classes: 'bg-green-100 text-green-700',
     defaultLabel: 'Active',
     dot: false,
   },
   BOOKED: {
-    classes: 'bg-[#DCFCE7] text-[#15803D]',
+    classes: 'bg-green-100 text-green-700',
     defaultLabel: 'Confirmado',
     dot: true,
   },
   CONFIRMED: {
-    classes: 'bg-[#DCFCE7] text-[#15803D]',
+    classes: 'bg-green-100 text-green-700',
     defaultLabel: 'CONFIRMADO',
     dot: true,
   },
   PENDING: {
-    classes: 'bg-[#FEF3C7] text-[#B45309]',
+    classes: 'bg-amber-100 text-amber-700',
     defaultLabel: 'Pendiente',
     dot: true,
   },
   CANCELLED: {
-    classes: 'bg-[#FEE2E2] text-[#B91C1C]',
+    classes: 'bg-red-100 text-red-700',
     defaultLabel: 'Cancelado',
     dot: true,
   },
   ON_LEAVE: {
-    classes: 'bg-[#FEE2E2] text-[#B91C1C]',
+    classes: 'bg-red-100 text-red-700',
     defaultLabel: 'On Leave',
     dot: true,
   },
@@ -55,12 +55,12 @@ const STATUS_CONFIG = {
     dot: false,
   },
   SPECIALTY: {
-    classes: 'bg-[#E6F2FA] text-[#133B5C]',
+    classes: 'bg-med-primary-100 text-med-primary-900',
     defaultLabel: '',
     dot: false,
   },
   INFO: {
-    classes: 'bg-[#E0F2FE] text-[#133B5C]',
+    classes: 'bg-med-primary-100 text-med-primary-900',
     defaultLabel: '',
     dot: false,
   },

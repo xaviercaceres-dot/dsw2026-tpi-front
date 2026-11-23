@@ -18,7 +18,7 @@ function PatientHome() {
     selectedDayMeta,
     rangeHeaderLabel,
     canGoBack,
-    reason,
+    reasonField,
     reasonError,
     message,
     error,
@@ -30,7 +30,6 @@ function PatientHome() {
     handleSearch,
     handleShiftWeek,
     handleSelectSlot,
-    handleReasonChange,
     handleConfirmBooking,
   } = usePatientBooking();
 
@@ -89,10 +88,9 @@ function PatientHome() {
       <AppointmentSummaryBar
         selectedSlot={selectedSlot}
         selectedDayMeta={selectedDayMeta}
-        reason={reason}
+        reasonField={reasonField}
         reasonError={reasonError}
         loading={booking}
-        onReasonChange={handleReasonChange}
         onConfirm={handleConfirmBooking}
       />
     </div>

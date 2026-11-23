@@ -1,20 +1,40 @@
+import { useForm } from 'react-hook-form';
 import PageHeader from '../../shared/components/PageHeader';
 import FormField from '../../shared/components/FormField';
+import Input from '../../shared/components/Input';
+import Button from '../../shared/components/Button';
 
-const borderClass = (hasError) =>
-  hasError ? 'border-red-400' : 'border-slate-200';
+const trimmedLength = (value) => String(value ?? '').trim().length;
+
+// Reglas de React Hook Form alineadas con las validaciones de SpecialityService (backend).
+const RULES = {
+  name: {
+    validate: (value) =>
+      (trimmedLength(value) >= 3 && trimmedLength(value) <= 100) ||
+      'El nombre es obligatorio y debe tener entre 3 y 100 caracteres.',
+  },
+  description: {
+    validate: (value) =>
+      (trimmedLength(value) >= 10 && trimmedLength(value) <= 100) ||
+      'La descripción es obligatoria y debe tener entre 10 y 100 caracteres.',
+  },
+};
 
 function SpecialtyFormCard({
-  form,
+  defaultValues,
   error,
-  fieldErrors = {},
   isEditing = false,
   saving = false,
-  onChange,
   onSubmit,
   onCancel,
 }) {
-  const descriptionLength = form.description.trim().length;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({ defaultValues, mode: 'onTouched' });
+  const descriptionLength = trimmedLength(watch('description'));
 
   return (
     <div>
@@ -28,7 +48,7 @@ function SpecialtyFormCard({
         }}
       />
 
-      <h1 className="text-base font-bold text-[#133B5C] mt-2">
+      <h1 className="text-base font-bold text-med-primary-900 mt-2">
         {isEditing ? 'Editar Especialidad' : 'Registrar Nueva Especialidad'}
       </h1>
       <p className="text-xs text-slate-600 mt-0.5 mb-5">
@@ -37,7 +57,7 @@ function SpecialtyFormCard({
       </p>
 
       <form
-        onSubmit={onSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="max-w-3xl bg-white rounded-lg border border-slate-200 p-5 sm:p-6 shadow-sm space-y-5"
       >
@@ -53,34 +73,31 @@ function SpecialtyFormCard({
         <FormField
           label="Nombre de la Especialidad"
           labelClassName="text-xs font-semibold text-slate-700 mb-1.5 block"
-          error={fieldErrors.name}
+          error={errors.name?.message}
         >
-          <input
+          <Input
             aria-label="Nombre de la Especialidad"
             maxLength={100}
-            value={form.name}
             placeholder="Ej. Cardiología Intervencionista"
-            onChange={(event) =>
-              onChange({ ...form, name: event.target.value })
-            }
-            className={`w-full border rounded-md px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${borderClass(fieldErrors.name)}`}
+            invalid={Boolean(errors.name)}
+            className="px-3.5 py-2"
+            {...register('name', RULES.name)}
           />
         </FormField>
 
         <FormField
           label="Descripción"
           labelClassName="text-xs font-semibold text-slate-700 mb-1.5 block"
-          error={fieldErrors.description}
+          error={errors.description?.message}
         >
-          <textarea
+          <Input
+            as="textarea"
             aria-label="Descripción"
             rows={5}
-            value={form.description}
             placeholder="Detalle el alcance de la especialidad, procedimientos principales y requisitos de derivación..."
-            onChange={(event) =>
-              onChange({ ...form, description: event.target.value })
-            }
-            className={`w-full border rounded-md px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#133B5C] ${borderClass(fieldErrors.description)}`}
+            invalid={Boolean(errors.description)}
+            className="px-3.5 py-2"
+            {...register('description', RULES.description)}
           />
           <p
             className={`text-[11px] mt-1 text-right ${
@@ -91,34 +108,11 @@ function SpecialtyFormCard({
           </p>
         </FormField>
 
-        <FormField
-          label="Estado inicial"
-          labelClassName="text-xs font-semibold text-slate-700 mb-1.5 block"
-        >
-          <select
-            aria-label="Estado inicial"
-            defaultValue="active"
-            className="w-full border border-slate-200 rounded-md px-3.5 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-[#133B5C]"
-          >
-            <option value="active">
-              Activo - Disponible para programación
-            </option>
-          </select>
-        </FormField>
-
         <div className="border-t border-slate-100 pt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border border-[#133B5C]/50 text-[#133B5C] px-5 py-2 rounded-md text-xs font-semibold hover:bg-slate-50 transition"
-          >
+          <Button variant="secondary" className="text-xs" onClick={onCancel}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-[#133B5C] hover:bg-[#0F2E49] text-white px-5 py-2 rounded-md text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={saving} className="text-xs">
             <svg
               className="w-4 h-4"
               fill="none"
@@ -134,7 +128,7 @@ function SpecialtyFormCard({
               />
             </svg>
             <span>{saving ? 'Guardando...' : 'Guardar Especialidad'}</span>
-          </button>
+          </Button>
         </div>
       </form>
     </div>
